@@ -1,0 +1,79 @@
+09:26:18  [TextRecognizer] Initialized
+09:26:18  ✓ Game window already at correct size (1734x703)
+09:26:18  Kill switch active: press Ctrl+Shift+Q to force-quit at any time
+09:26:18  Arena config: max power = 300,000
+09:26:18  Arena config: max level = 65
+09:26:18  Iron Twins: stage = 13
+09:26:18  Iron Twins: gear macro = IT Gearup
+09:26:22  
+09:26:22    --- Iron Twins: Stage 13 ---
+09:26:22    Gear macro: IT Gearup
+09:26:23    Looking for Battle button...
+09:26:27    Clicked Battle
+09:26:28    Looking for Dungeons...
+09:26:31    Clicked Dungeons
+09:26:32    Looking for Iron Twins...
+09:26:36    Clicked Iron Twins
+09:26:38    Scrolling to top of stage list...
+09:26:55    Reached up edge after 5 scroll(s)
+09:26:55    [debug] Saved e:\Projects\Misc\Dreamer\debug\it_scroll_0.png
+09:26:55    Stage 13 not found on screen — scrolling down
+09:26:58    [debug] Saved e:\Projects\Misc\Dreamer\debug\it_scroll_1.png
+09:26:58    Stage 13 not found on screen — scrolling down
+09:27:02    [debug] Saved e:\Projects\Misc\Dreamer\debug\it_scroll_2.png
+09:27:02    Stage 13 not found on screen — scrolling down
+09:27:05    [debug] Saved e:\Projects\Misc\Dreamer\debug\it_scroll_3.png
+09:27:05    Stage 13 not found on screen — scrolling down
+09:27:09    OCR found "Stage 13" at Y=488
+09:27:09    Found Stage 13 text at Y=488
+09:27:09    [debug] Saved e:\Projects\Misc\Dreamer\debug\it_scroll_4_found.png
+09:27:09    Clicking battle button at (1588, 502) (Y offset: 14px)
+09:27:12    Stage 13 selected
+09:27:13    Running gear macro: IT Gearup
+09:27:13    Playing 69 click(s)...
+09:27:15    Click #1/69: (1171, 628) delay=0.000s hold=850ms
+09:27:16    Click #2/69: (2257, 537) delay=0.879s hold=120ms
+09:27:17    Click #3/69: (1769, 478) delay=0.793s hold=80ms
+09:27:19    Click #4/69: (953, 687) delay=0.941s hold=89ms
+09:27:20    Click #5/69: (1857, 716) delay=1.509s hold=72ms
+09:27:22    Click #6/69: (2385, 981) delay=0.956s hold=80ms
+09:27:23    Click #7/69: (1790, 834) delay=0.559s hold=94ms
+09:27:24    Click #8/69: (1542, 455) delay=0.806s hold=98ms
+09:27:25    Click #9/69: (1773, 474) delay=0.684s hold=104ms
+09:27:26    Click #10/69: (959, 687) delay=0.821s hold=85ms
+09:27:28    Click #11/69: (1860, 712) delay=1.038s hold=72ms
+09:27:29    Click #12/69: (2353, 988) delay=0.813s hold=79ms
+09:27:30    Click #13/69: (1797, 876) delay=0.642s hold=61ms
+09:27:32    Click #14/69: (2458, 400) delay=1.328s hold=403ms
+09:27:34    Click #15/69: (1046, 560) delay=0.937s hold=926ms
+09:27:35    Click #16/69: (2372, 642) delay=0.697s hold=82ms
+09:27:36    Click #17/69: (1773, 453) delay=0.807s hold=86ms
+09:27:38    Click #18/69: (943, 689) delay=1.108s hold=108ms
+09:27:40    Click #19/69: (1846, 710) delay=1.086s hold=80ms
+09:27:41    Click #20/69: (2392, 966) delay=0.819s hold=88ms
+09:27:42    Click #21/69: (1827, 867) delay=0.727s hold=82ms
+09:27:43    Click #22/69: (1558, 468) delay=1.026s hold=104ms
+09:27:45    Click #23/69: (1755, 465) delay=1.026s hold=101ms
+09:27:46    Click #24/69: (919, 686) delay=0.849s hold=95ms
+09:27:47    Click #25/69: (1866, 703) delay=0.922s hold=90ms
+09:27:49    Click #26/69: (2409, 979) delay=0.801s hold=76ms
+09:27:50    Click #27/69: (1795, 859) delay=0.770s hold=92ms
+09:27:54    Click #28/69: (2456, 400) delay=1.636s hold=2392ms
+09:27:57    Click #29/69: (956, 567) delay=1.232s hold=855ms
+09:27:58    Click #30/69: (2272, 548) delay=0.766s hold=79ms
+09:27:59    Click #31/69: (1782, 465) delay=0.755s hold=70ms
+09:28:00    Click #32/69: (933, 682) delay=1.003s hold=95ms
+09:28:02    Click #33/69: (1843, 606) delay=1.139s hold=60ms
+09:28:03    Click #34/69: (2353, 981) delay=0.888s hold=73ms
+09:28:04    Click #35/69: (1796, 889) delay=0.687s hold=79ms
+09:28:05    Click #36/69: (1561, 461) delay=0.699s hold=91ms
+09:28:06    Click #37/69: (1766, 461) delay=0.748s hold=75ms
+09:28:08    Click #38/69: (949, 678) delay=0.783s hold=80ms
+09:28:09    Click #39/69: (1869, 596) delay=0.782s hold=71ms
+09:28:10    Click #40/69: (2405, 977) delay=0.846s hold=70ms
+09:28:11    Click #41/69: (1824, 863) delay=0.714s hold=80ms
+09:28:12    Click #42/69: (2459, 396) delay=0.831s hold=88ms
+09:28:15    Click #43/69: (935, 676) delay=1.489s hold=876ms
+09:28:16    Click #44/69: (2261, 548) delay=0.796s hold=62ms
+09:28:17    Click #45/69: (1779, 468) delay=0.787s hold=105ms
+09:28:19    Click #46/69: (939, 689) delay=0.887s hold=86ms

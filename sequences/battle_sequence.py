@@ -5,6 +5,7 @@ Uses smart scroll traversal to minimize scrolling
 
 import time
 import pyautogui
+from natural_click import NaturalClick
 
 from config import (
     ARENA_SCAN_DELAY,
@@ -41,6 +42,7 @@ class BattleSequence:
         self.template_matcher = template_matcher
         self.log = log_func or print
         self.stop_check = stop_check  # Function to check if stop requested
+        self.clicker = NaturalClick()
         
         # Battle state
         self.sorted_targets = []
@@ -139,21 +141,21 @@ class BattleSequence:
                     self.scanner.scroll_list(direction='down')
         
         # Verify target is visible
-        time.sleep(ARENA_SCAN_DELAY)
-        
+        self.clicker.natural_delay(ARENA_SCAN_DELAY)
+
         if self.scanner.verify_opponent_at_position(target_power):
             return True
-        
+
         # Try one scroll in each direction if not found
         self.scanner.scroll_list(direction='down')
-        time.sleep(ARENA_SCAN_DELAY)
+        self.clicker.natural_delay(ARENA_SCAN_DELAY)
         if self.scanner.verify_opponent_at_position(target_power):
             return True
-        
+
         # Try up (2 scrolls to go past original)
         self.scanner.scroll_list(direction='up')
         self.scanner.scroll_list(direction='up')
-        time.sleep(ARENA_SCAN_DELAY)
+        self.clicker.natural_delay(ARENA_SCAN_DELAY)
         if self.scanner.verify_opponent_at_position(target_power):
             return True
         
@@ -208,9 +210,9 @@ class BattleSequence:
         self.log(f"    Clicking Battle button at ({button_x}, {button_y}) [y_pos={y_pos}, offset={BUTTON_Y_OFFSET}]")
         
         pyautogui.moveTo(button_x, button_y, duration=0.3)
-        time.sleep(0.2)
-        pyautogui.click()
-        
+        self.clicker.natural_delay(0.2)
+        self.clicker.click()
+
         return True
     
     def click_start_fight(self):
@@ -262,7 +264,7 @@ class BattleSequence:
         )
         
         # Look for free tokens option
-        time.sleep(0.5)
+        self.clicker.natural_delay(0.5)
         found_free, _, _ = self.template_matcher.find_template(
             TEMPLATE_FREE_ATOKENS,
             threshold=0.8
@@ -276,14 +278,14 @@ class BattleSequence:
             )
             self.log(f"    ✓ Tokens refilled (free)")
             # Reset scroll position - the list resets to top after refill
-            self.scanner.current_scroll_position = 0
+            self.scanner.scroll_count = 0
             return 'refilled'
         else:
             self.log(f"    ✗ No free tokens - out of tokens")
             # Press Escape to close the popup
             import pyautogui
             pyautogui.press('escape')
-            time.sleep(0.5)
+            self.clicker.natural_delay(0.5)
             return 'no_tokens'
     
     def wait_for_battle_complete(self, timeout=120, check_interval=3.0):
@@ -309,9 +311,9 @@ class BattleSequence:
             
             if success:
                 return True
-            
-            time.sleep(check_interval)
-        
+
+            self.clicker.natural_delay(check_interval)
+
         self.log(f"    ✗ Timeout waiting for Battle Complete ({timeout}s)")
         return False
     
@@ -337,7 +339,7 @@ class BattleSequence:
                 return True
             
             if attempt < max_attempts - 1:
-                time.sleep(check_interval)
+                self.clicker.natural_delay(check_interval)
         
         self.log(f"    ✗ Return Arena button not found")
         return False
@@ -403,9 +405,9 @@ class BattleSequence:
         
         # Navigate to target
         if not self.navigate_to_target(target):
-            self.log(f"    ✗ Failed to navigate to opponent, skipping")
-            self.current_target_index += 1
-            return 'skip'
+            self.log(f"    ✗ Failed to navigate to opponent, list likely refreshed - rescanning required")
+            self.list_valid = False
+            return 'list_invalid'
         
         # Click opponent's battle button (opens team selection screen)
         # Use stored Y position from initial scan - more reliable than re-scanning
@@ -415,7 +417,7 @@ class BattleSequence:
             return 'skip'
         
         # Wait for team selection screen to load
-        time.sleep(1.0)
+        self.clicker.natural_delay(1.0)
         
         # Click "Start Fight" button to begin battle
         if not self.click_start_fight():
@@ -430,7 +432,7 @@ class BattleSequence:
             return 'skip'
         
         # Wait 1 second then click Return Arena
-        time.sleep(1.0)
+        self.clicker.natural_delay(1.0)
         if not self.click_return_arena():
             self.log(f"    ✗ Failed to return to arena")
             self.current_target_index += 1
@@ -440,7 +442,7 @@ class BattleSequence:
         self.scanner.scroll_count = 0
         
         # Wait for arena list to fully load
-        time.sleep(2.0)
+        self.clicker.natural_delay(2.0)
         
         self.current_target_index += 1
         self.battles_completed += 1
@@ -510,7 +512,7 @@ class BattleSequence:
         remaining_power = remaining_target['power']
         
         # Quick scan of first visible opponent
-        time.sleep(ARENA_SCAN_DELAY)
+        self.clicker.natural_delay(ARENA_SCAN_DELAY)
         frame = self.window_capture.capture()
         height, width = frame.shape[:2]
         

@@ -1,0 +1,71 @@
+22:46:22  [TextRecognizer] Initialized
+22:46:22  ✓ Game window already at correct size (1734x703)
+22:46:22  Kill switch active: press Ctrl+Shift+Q to force-quit at any time
+22:46:22  Arena config: max power = 300,000
+22:46:22  Arena config: max level = 65
+22:46:22  Iron Twins: stage = 13
+22:46:22  Iron Twins: gear macro = IT Gearup
+22:46:30  
+22:46:30    --- Iron Twins: Stage 13 ---
+22:46:30    Gear macro: IT Gearup
+22:46:30    Looking for Battle button...
+22:46:31    Battle button not found — aborting
+22:46:43  
+22:46:43    --- Iron Twins: Stage 13 ---
+22:46:43    Gear macro: IT Gearup
+22:46:44    Looking for Battle button...
+22:46:47    Clicked Battle
+22:46:48    Looking for Dungeons...
+22:46:52    Clicked Dungeons
+22:46:53    Looking for Iron Twins...
+22:46:57    Clicked Iron Twins
+22:46:58    Scrolling to top of stage list...
+22:47:15    Reached up edge after 5 scroll(s)
+22:47:15    Found 5 icon(s) on screen (stages 1-5)
+22:47:15    [debug] Saved e:\Projects\Misc\Dreamer\debug\it_scroll_0.png
+22:47:15    Stage 13 not visible yet — scrolling down
+22:47:19    Overlap: 5 icon(s), 0 scrolled off, icons_above now 0
+22:47:19    Found 5 icon(s) on screen (stages 1-5)
+22:47:19    [debug] Saved e:\Projects\Misc\Dreamer\debug\it_scroll_1.png
+22:47:19    Stage 13 not visible yet — scrolling down
+22:47:22    Overlap: 5 icon(s), 0 scrolled off, icons_above now 0
+22:47:22    Found 5 icon(s) on screen (stages 1-5)
+22:47:22    [debug] Saved e:\Projects\Misc\Dreamer\debug\it_scroll_2.png
+22:47:22    Stage 13 not visible yet — scrolling down
+22:47:25    Overlap: 5 icon(s), 0 scrolled off, icons_above now 0
+22:47:25    Found 5 icon(s) on screen (stages 1-5)
+22:47:26    [debug] Saved e:\Projects\Misc\Dreamer\debug\it_scroll_3.png
+22:47:26    Stage 13 not visible yet — scrolling down
+22:47:29    Overlap: 5 icon(s), 0 scrolled off, icons_above now 0
+22:47:29    Found 5 icon(s) on screen (stages 1-5)
+22:47:29    [debug] Saved e:\Projects\Misc\Dreamer\debug\it_scroll_4.png
+22:47:29    Stage 13 not visible yet — scrolling down
+22:47:32    Overlap: 5 icon(s), 0 scrolled off, icons_above now 0
+22:47:32    Found 5 icon(s) on screen (stages 1-5)
+22:47:32    [debug] Saved e:\Projects\Misc\Dreamer\debug\it_scroll_5.png
+22:47:32    Stage 13 not visible yet — scrolling down
+22:47:36    Overlap: 5 icon(s), 0 scrolled off, icons_above now 0
+22:47:36    Found 5 icon(s) on screen (stages 1-5)
+22:47:36    [debug] Saved e:\Projects\Misc\Dreamer\debug\it_scroll_6.png
+22:47:36    Stage 13 not visible yet — scrolling down
+22:47:39    Overlap: 5 icon(s), 0 scrolled off, icons_above now 0
+22:47:39    Found 5 icon(s) on screen (stages 1-5)
+22:47:39    [debug] Saved e:\Projects\Misc\Dreamer\debug\it_scroll_7.png
+22:47:39    Stage 13 not visible yet — scrolling down
+22:47:43    Overlap: 5 icon(s), 0 scrolled off, icons_above now 0
+22:47:43    Found 5 icon(s) on screen (stages 1-5)
+22:47:43    [debug] Saved e:\Projects\Misc\Dreamer\debug\it_scroll_8.png
+22:47:43    Stage 13 not visible yet — scrolling down
+22:47:46    Overlap: 5 icon(s), 0 scrolled off, icons_above now 0
+22:47:46    Found 5 icon(s) on screen (stages 1-5)
+22:47:46    [debug] Saved e:\Projects\Misc\Dreamer\debug\it_scroll_9.png
+22:47:46    Stage 13 not visible yet — scrolling down
+22:47:50    Overlap: 5 icon(s), 0 scrolled off, icons_above now 0
+22:47:50  
+22:47:50    ⚠ STOP REQUESTED - will stop after current action...
+22:47:50  
+22:47:50    Found 5 icon(s) on screen (stages 1-5)
+22:47:50    [debug] Saved e:\Projects\Misc\Dreamer\debug\it_scroll_10.png
+22:47:50    Stage 13 not visible yet — scrolling down
+22:47:53    Stage 13 not found after scrolling
+22:47:53    Failed to select stage — aborting

@@ -6,3 +6,4 @@ pygetwindow
 pillow
 pyscreeze
 pytesseract
+pynput

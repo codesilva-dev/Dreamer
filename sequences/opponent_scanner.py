@@ -3,10 +3,10 @@ Opponent Scanner - Handles scanning and tracking Arena opponents
 Focused on acquiring opponent data with scroll position tracking
 """
 
-import time
 import pyautogui
 import cv2
 import numpy as np
+from natural_click import NaturalClick
 
 from config import (
     ARENA_SCAN_DELAY,
@@ -34,6 +34,7 @@ class OpponentScanner:
         self.window_capture = window_capture
         self.text_recognizer = text_recognizer
         self.log = log_func or print
+        self.clicker = NaturalClick()
         
         # Scanning state
         self.opponents = []  # List of {'power', 'y_position', 'scroll_position'}
@@ -177,15 +178,16 @@ class OpponentScanner:
             end_y = top + int(height * ARENA_LIST_REGION['y_end'])
         
         pyautogui.moveTo(center_x, start_y, duration=0.2)
-        time.sleep(0.1)
+        self.clicker.natural_delay(0.1)
         pyautogui.mouseDown()
-        time.sleep(0.1)
+        self.clicker.natural_delay(0.1)
         pyautogui.moveTo(center_x, end_y, duration=ARENA_SCROLL_DURATION)
         # Hold mouse down after scroll to stop inertia (phone-like scrolling)
-        time.sleep(0.3)
+        # Must hold long enough or the app reads it as a fling gesture
+        self.clicker.natural_delay(0.5)
         pyautogui.mouseUp()
-        
-        time.sleep(ARENA_SCROLL_DELAY)
+
+        self.clicker.natural_delay(ARENA_SCROLL_DELAY)
         
         if direction == 'down':
             self.scroll_count += 1
@@ -231,7 +233,7 @@ class OpponentScanner:
         Returns:
             List of opponent dicts: {'power', 'y_position', 'scroll_position'}
         """
-        time.sleep(ARENA_SCAN_DELAY)
+        self.clicker.natural_delay(ARENA_SCAN_DELAY)
         
         frame = self.window_capture.capture()
         height, width = frame.shape[:2]
@@ -314,7 +316,8 @@ class OpponentScanner:
         
         # Track last scan for end-of-list detection
         last_bottom_powers = set()
-        consecutive_empty_scans = 0  # Track OCR failures
+        ocr_retry_count = 0  # Track retries at current position
+        max_ocr_retries = 2  # Max retries before giving up on a position
         
         # Switch to bottom band mode
         self._show_overlay_mode('bottom')
@@ -327,16 +330,23 @@ class OpponentScanner:
             visible = self.scan_visible_opponents(use_bottom_band=True)
             current_powers = set(opp['power'] for opp in visible)
             
-            # Handle empty scans (OCR failures) - don't treat as end of list
+            # Handle empty scans (OCR failures) with retry logic
             if len(visible) == 0:
-                consecutive_empty_scans += 1
-                self.log(f"      ! OCR returned nothing (attempt {consecutive_empty_scans})")
-                if consecutive_empty_scans >= 2:
-                    self.log(f"      ! Multiple OCR failures - continuing anyway")
-                    consecutive_empty_scans = 0
-                continue  # Try next scroll without end-detection
+                ocr_retry_count += 1
+                self.log(f"      ! OCR returned nothing (attempt {ocr_retry_count}/{max_ocr_retries})")
+                
+                if ocr_retry_count <= max_ocr_retries:
+                    # Retry: scroll back and forward again to re-scan same position
+                    self.log(f"      → Retrying scan at this position...")
+                    self.scroll_list(direction='up')
+                    continue  # Loop will scroll down again
+                else:
+                    # Give up on this position after max retries
+                    self.log(f"      ! Giving up on scroll position {self.scroll_count} after {max_ocr_retries} failures")
+                    ocr_retry_count = 0  # Reset for next position
+                    continue  # Move to next scroll position
             else:
-                consecutive_empty_scans = 0
+                ocr_retry_count = 0  # Reset on successful scan
             
             # Check for end of list (same opponent as last scan)
             if last_bottom_powers and current_powers == last_bottom_powers:
@@ -438,7 +448,7 @@ class OpponentScanner:
         Returns:
             Set of power values currently visible
         """
-        time.sleep(ARENA_SCAN_DELAY)
+        self.clicker.natural_delay(ARENA_SCAN_DELAY)
         frame = self.window_capture.capture()
         roi_x, roi_y, roi_w, roi_h = self.get_ocr_region(frame)
         roi_frame = frame[roi_y:roi_y+roi_h, roi_x:roi_x+roi_w]

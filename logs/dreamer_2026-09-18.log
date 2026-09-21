@@ -1,0 +1,332 @@
+23:49:37  [TextRecognizer] Initialized
+23:49:37  ✓ Game window already at correct size (1734x703)
+23:49:37  Kill switch active: press Ctrl+Shift+Q to force-quit at any time
+23:51:00  Macro: playing "Arena Gearup" (71 clicks, single)...
+23:53:27  Macro: playback finished.
+23:54:18  Arena config: max power = 10,000
+23:54:18  Arena config: max power = 20,000
+23:54:19  Arena config: max power = 30,000
+23:54:21  Arena config: max power = no limit
+23:54:23  Arena config: max power = 6
+23:54:25  Arena config: max power = 3
+23:54:26  Arena config: max power = 30
+23:54:26  Arena config: max power = 300
+23:54:26  Arena config: max power = 3,000
+23:54:27  Arena config: max power = 30,000
+23:54:27  Arena config: max power = 300,000
+23:54:36  Arena config: max level = 6
+23:54:36  Arena config: max level = 65
+23:54:43  V2 scan region overlay shown:
+23:54:43    RED = V2 fluid region (y: 24% to 100%)
+23:55:06  
+[V2] Running Arena FULL sequence (vision-based)...
+23:55:06  Make sure you are already on the Classic Arena screen!
+23:55:06  
+23:55:06  ============================================================
+23:55:06    [V2] CLASSIC ARENA — FULL BATTLE (continuous)
+23:55:06  ============================================================
+23:55:06    Acquiring game window...
+23:55:07    Window: (1544, 410) 1734x703
+23:55:07  
+23:55:07    ┌─ CYCLE #1 (total battles: 0) ─┐
+23:55:11      At top (fling)
+23:55:11  
+23:55:11    [V2] Fluid scanning opponent list...
+23:55:11      Debug frames → e:\Projects\Misc\Dreamer\debug
+23:55:11    [OCR]   Dual-column projection found 5 'Team Power:' rows
+23:55:11    [OCR]   Band 1 Y=74-86 -> no valid read
+23:55:11    [OCR]   Band 2 Y=145-154 ->271,470 ('271.47K')
+23:55:12    [OCR]   Band 3 Y=261-270 ->162,340 ('162.34K')
+23:55:12    [OCR]   Band 4 Y=377-385 ->598,660 ('598.66K')
+23:55:12    [OCR]   Band 5 Y=492-501 ->195,320 ('195.32K')
+23:55:12    [OCR]   HSV scan found 4 power values
+23:55:12    [OCR]   [LVL] Row projection found 1 level bands
+23:55:12    [OCR]   [LVL] Band 1 Y=117-125 -> L6
+23:55:12    [OCR]   [LVL] Found 1 player levels
+23:55:12      Visible: 4 opponents (1 avail) — 271,470, 162,340, 598,660, 195,320
+23:55:12        + 4 snatched at top
+23:55:15    [OCR]   Dual-column projection found 4 'Team Power:' rows
+23:55:15    [OCR]   Band 1 Y=90-98 ->598,660 ('598.66K')
+23:55:15    [OCR]   Band 2 Y=205-214 ->195,320 ('195.32K')
+23:55:15    [OCR]   Band 3 Y=321-329 ->447,660 ('447.66K')
+23:55:15    [OCR]   Band 4 Y=436-445 ->122,840 ('122.84K')
+23:55:15    [OCR]   HSV scan found 4 power values
+23:55:15    [OCR]   [LVL] Row projection found 1 level bands
+23:55:15    [OCR]   [LVL] Band 1 Y=159-165 -> no valid read
+23:55:15    [OCR]   [LVL] Found 0 player levels
+23:55:15        + 2 new after scroll 1 (4 visible)
+23:55:18    [OCR]   Dual-column projection found 4 'Team Power:' rows
+23:55:18    [OCR]   Band 1 Y=149-158 ->122,840 ('122.84K')
+23:55:18    [OCR]   Band 2 Y=265-274 ->327,330 ('327.33K')
+23:55:18    [OCR]   Band 3 Y=381-389 ->222,280 ('222.28K')
+23:55:18    [OCR]   Band 4 Y=496-505 ->279,210 ('279.21K')
+23:55:18    [OCR]   HSV scan found 4 power values
+23:55:18    [OCR]   [LVL] Row projection found 0 level bands
+23:55:18    [OCR]   [LVL] Found 0 player levels
+23:55:18        + 3 new after scroll 2 (4 visible)
+23:55:21    [OCR]   Dual-column projection found 4 'Team Power:' rows
+23:55:21    [OCR]   Band 1 Y=141-149 ->327,330 ('327.33K')
+23:55:21    [OCR]   Band 2 Y=256-265 ->222,280 ('222.28K')
+23:55:21    [OCR]   Band 3 Y=372-380 ->279,210 ('279.21K')
+23:55:21    [OCR]   Band 4 Y=487-496 ->354,100 ('354.1K')
+23:55:21    [OCR]   HSV scan found 4 power values
+23:55:21    [OCR]   [LVL] Row projection found 1 level bands
+23:55:21    [OCR]   [LVL] Band 1 Y=117-125 -> L6
+23:55:21    [OCR]   [LVL] Found 1 player levels
+23:55:21        + 1 new after scroll 3 (4 visible)
+23:55:24    [OCR]   Dual-column projection found 4 'Team Power:' rows
+23:55:24    [OCR]   Band 1 Y=141-149 ->327,330 ('327.33K')
+23:55:24    [OCR]   Band 2 Y=256-265 ->222,280 ('222.28K')
+23:55:24    [OCR]   Band 3 Y=372-380 ->279,210 ('279.21K')
+23:55:24    [OCR]   Band 4 Y=487-496 ->354,100 ('354.1K')
+23:55:24    [OCR]   HSV scan found 4 power values
+23:55:24    [OCR]   [LVL] Row projection found 0 level bands
+23:55:24    [OCR]   [LVL] Found 0 player levels
+23:55:24        All duplicates (x1)
+23:55:27    [OCR]   Dual-column projection found 4 'Team Power:' rows
+23:55:27    [OCR]   Band 1 Y=141-149 ->327,330 ('327.33K')
+23:55:27    [OCR]   Band 2 Y=256-265 ->222,280 ('222.28K')
+23:55:27    [OCR]   Band 3 Y=372-380 ->279,210 ('279.21K')
+23:55:27    [OCR]   Band 4 Y=487-496 ->354,100 ('354.1K')
+23:55:27    [OCR]   HSV scan found 4 power values
+23:55:27    [OCR]   [LVL] Row projection found 0 level bands
+23:55:27    [OCR]   [LVL] Found 0 player levels
+23:55:27        All duplicates (x2)
+23:55:27    [V2] End of list reached
+23:55:27    [V2] Fluid scan complete: 10 total, 5 available
+23:55:27      Sorted: 122,840, 162,340, 195,320, 222,280, 271,470 (L6), 279,210, 327,330, 354,100, 447,660, 598,660
+23:55:27    Filtered out 5 already defeated
+23:55:27    Power filter: 5 → 1 (max 300,000)
+23:55:27    Level filter: 1 → 1 (max L65)
+23:55:27    Targets (weakest first): 1
+23:55:27      222,280
+23:55:32      At top (fling)
+23:55:32      Snapshot first opponent (780x113px)
+23:55:32    [1/1] Targeting Power 222,280
+23:55:32      Searching for Power 222,280...
+23:55:36      At top (fling)
+23:55:37    [OCR]   Dual-column projection found 5 'Team Power:' rows
+23:55:37    [OCR]   Band 1 Y=74-86 -> no valid read
+23:55:37    [OCR]   Band 2 Y=145-154 ->271,470 ('271.47K')
+23:55:37    [OCR]   Band 3 Y=261-270 ->162,340 ('162.34K')
+23:55:37    [OCR]   Band 4 Y=377-385 ->598,660 ('598.66K')
+23:55:38    [OCR]   Band 5 Y=492-501 ->195,320 ('195.32K')
+23:55:38    [OCR]   HSV scan found 4 power values
+23:55:38    [OCR]   Dual-column projection found 5 'Team Power:' rows
+23:55:39    [OCR]   Band 1 Y=74-86 -> no valid read
+23:55:39    [OCR]   Band 2 Y=145-154 ->271,470 ('271.47K')
+23:55:39    [OCR]   Band 3 Y=261-270 ->162,340 ('162.34K')
+23:55:39    [OCR]   Band 4 Y=377-385 ->598,660 ('598.66K')
+23:55:39    [OCR]   Band 5 Y=492-501 ->195,320 ('195.32K')
+23:55:39    [OCR]   HSV scan found 4 power values
+23:55:42    [OCR]   Dual-column projection found 4 'Team Power:' rows
+23:55:42    [OCR]   Band 1 Y=90-98 ->598,660 ('598.66K')
+23:55:42    [OCR]   Band 2 Y=205-214 ->195,320 ('195.32K')
+23:55:42    [OCR]   Band 3 Y=321-329 ->447,660 ('447.66K')
+23:55:43    [OCR]   Band 4 Y=436-445 ->122,840 ('122.84K')
+23:55:43    [OCR]   HSV scan found 4 power values
+23:55:43    [OCR]   Dual-column projection found 4 'Team Power:' rows
+23:55:43    [OCR]   Band 1 Y=90-98 ->598,660 ('598.66K')
+23:55:44    [OCR]   Band 2 Y=205-214 ->195,320 ('195.32K')
+23:55:44    [OCR]   Band 3 Y=321-329 ->447,660 ('447.66K')
+23:55:44    [OCR]   Band 4 Y=436-445 ->122,840 ('122.84K')
+23:55:44    [OCR]   HSV scan found 4 power values
+23:55:47    [OCR]   Dual-column projection found 4 'Team Power:' rows
+23:55:47    [OCR]   Band 1 Y=149-158 ->122,840 ('122.84K')
+23:55:47    [OCR]   Band 2 Y=265-274 ->327,330 ('327.33K')
+23:55:47    [OCR]   Band 3 Y=381-389 ->222,280 ('222.28K')
+23:55:47    [OCR]   Band 4 Y=496-505 ->279,210 ('279.21K')
+23:55:47    [OCR]   HSV scan found 4 power values
+23:55:47      Found at y=553
+23:55:47      Clicking Battle at (3104, 913)
+23:56:27      Battle 1 complete
+23:56:27    Attack phase done: 1 battles, 0 not found, 0 skipped
+23:56:31    Refreshing opponent list (free)...
+23:56:31  
+23:56:31    ┌─ CYCLE #2 (total battles: 1) ─┐
+23:56:35      At top (fling)
+23:56:35  
+23:56:35    [V2] Fluid scanning opponent list...
+23:56:35      Debug frames → e:\Projects\Misc\Dreamer\debug
+23:56:35    [OCR]   Dual-column projection found 5 'Team Power:' rows
+23:56:35    [OCR]   Band 1 Y=64-72 -> no valid read
+23:56:35    [OCR]   Band 2 Y=145-154 ->129,210 ('129.21K')
+23:56:36    [OCR]   Band 3 Y=261-270 ->220,440 ('220.44K')
+23:56:36    [OCR]   Band 4 Y=377-385 ->205,390 ('205.39K')
+23:56:36    [OCR]   Band 5 Y=492-501 ->219,970 ('219.97K')
+23:56:36    [OCR]   HSV scan found 4 power values
+23:56:36    [OCR]   [LVL] Row projection found 1 level bands
+23:56:36    [OCR]   [LVL] Band 1 Y=117-125 -> L6
+23:56:36    [OCR]   [LVL] Found 1 player levels
+23:56:36      Visible: 4 opponents (4 avail) — 129,210, 220,440, 205,390, 219,970
+23:56:36        + 3 snatched at top
+23:56:38    [OCR]   Dual-column projection found 3 'Team Power:' rows
+23:56:39    [OCR]   Band 1 Y=90-98 ->205,390 ('205.39K')
+23:56:39    [OCR]   Band 2 Y=205-214 ->219,970 ('219.97K')
+23:56:39    [OCR]   Band 3 Y=321-329 ->17,418 ('17,418')
+23:56:39    [OCR]   HSV scan found 3 power values
+23:56:39    [OCR]   [LVL] Row projection found 1 level bands
+23:56:39    [OCR]   [LVL] Band 1 Y=159-165 -> no valid read
+23:56:39    [OCR]   [LVL] Found 0 player levels
+23:56:39        + 1 new after scroll 1 (3 visible)
+23:56:42    [OCR]   Dual-column projection found 3 'Team Power:' rows
+23:56:42    [OCR]   Band 1 Y=265-274 ->178,890 ('178.89K')
+23:56:42    [OCR]   Band 2 Y=380-389 ->43,691 ('43,691')
+23:56:42    [OCR]   Band 3 Y=496-505 ->164,080 ('164.08K')
+23:56:42    [OCR]   HSV scan found 3 power values
+23:56:42    [OCR]   [LVL] Row projection found 1 level bands
+23:56:42    [OCR]   [LVL] Band 1 Y=117-125 -> L6
+23:56:42    [OCR]   [LVL] Found 1 player levels
+23:56:42        + 3 new after scroll 2 (3 visible)
+23:56:45    [OCR]   Dual-column projection found 4 'Team Power:' rows
+23:56:45    [OCR]   Band 1 Y=141-149 ->178,890 ('178.89K')
+23:56:45    [OCR]   Band 2 Y=256-265 ->49,691 ('49.691')
+23:56:45    [OCR]   Band 3 Y=372-380 ->164,080 ('164.08K')
+23:56:45    [OCR]   Band 4 Y=487-496 ->286,850 ('286.85K')
+23:56:45    [OCR]   HSV scan found 4 power values
+23:56:45    [OCR]   [LVL] Row projection found 1 level bands
+23:56:45    [OCR]   [LVL] Band 1 Y=117-125 -> L6
+23:56:45    [OCR]   [LVL] Found 1 player levels
+23:56:45        + 2 new after scroll 3 (4 visible)
+23:56:48    [OCR]   Dual-column projection found 4 'Team Power:' rows
+23:56:48    [OCR]   Band 1 Y=140-149 ->178,890 ('178.89K')
+23:56:48    [OCR]   Band 2 Y=256-265 ->49,691 ('49.691')
+23:56:48    [OCR]   Band 3 Y=372-380 ->164,080 ('164.08K')
+23:56:48    [OCR]   Band 4 Y=487-496 ->286,850 ('286.85K')
+23:56:48    [OCR]   HSV scan found 4 power values
+23:56:48    [OCR]   [LVL] Row projection found 1 level bands
+23:56:48    [OCR]   [LVL] Band 1 Y=117-125 -> L6
+23:56:48    [OCR]   [LVL] Found 1 player levels
+23:56:48        All duplicates (x1)
+23:56:51    [OCR]   Dual-column projection found 4 'Team Power:' rows
+23:56:51    [OCR]   Band 1 Y=140-149 ->178,890 ('178.89K')
+23:56:51    [OCR]   Band 2 Y=256-265 ->49,691 ('49.691')
+23:56:51    [OCR]   Band 3 Y=372-380 ->164,080 ('164.08K')
+23:56:51    [OCR]   Band 4 Y=487-496 ->286,850 ('286.85K')
+23:56:51    [OCR]   HSV scan found 4 power values
+23:56:51    [OCR]   [LVL] Row projection found 1 level bands
+23:56:51    [OCR]   [LVL] Band 1 Y=117-125 -> L6
+23:56:51    [OCR]   [LVL] Found 1 player levels
+23:56:51        All duplicates (x2)
+23:56:51    [V2] End of list reached
+23:56:51    [V2] Fluid scan complete: 9 total, 9 available
+23:56:51      Sorted: 17,418, 43,691, 49,691, 129,210 (L6), 164,080, 178,890, 205,390, 220,440, 286,850
+23:56:51    Power filter: 9 → 9 (max 300,000)
+23:56:51    Level filter: 9 → 9 (max L65)
+23:56:51    Targets (weakest first): 9
+23:56:51      17,418, 43,691, 49,691, 129,210, 164,080, 178,890, 205,390, 220,440, ...+1 more
+23:56:56      At top (fling)
+23:56:56      Snapshot first opponent (780x113px)
+23:56:56    [1/9] Targeting Power 17,418
+23:56:56      Searching for Power 17,418...
+23:57:00      At top (fling)
+23:57:01    [OCR]   Dual-column projection found 5 'Team Power:' rows
+23:57:01    [OCR]   Band 1 Y=64-72 -> no valid read
+23:57:01    [OCR]   Band 2 Y=145-154 ->129,210 ('129.21K')
+23:57:01    [OCR]   Band 3 Y=261-270 ->220,440 ('220.44K')
+23:57:01    [OCR]   Band 4 Y=377-385 ->205,390 ('205.39K')
+23:57:02    [OCR]   Band 5 Y=492-501 ->219,970 ('219.97K')
+23:57:02    [OCR]   HSV scan found 4 power values
+23:57:02    [OCR]   Dual-column projection found 5 'Team Power:' rows
+23:57:03    [OCR]   Band 1 Y=64-72 -> no valid read
+23:57:03    [OCR]   Band 2 Y=145-154 ->129,210 ('129.21K')
+23:57:03    [OCR]   Band 3 Y=261-270 ->220,440 ('220.44K')
+23:57:03    [OCR]   Band 4 Y=377-385 ->205,390 ('205.39K')
+23:57:03    [OCR]   Band 5 Y=492-501 ->219,970 ('219.97K')
+23:57:03    [OCR]   HSV scan found 4 power values
+23:57:06    [OCR]   Dual-column projection found 3 'Team Power:' rows
+23:57:06    [OCR]   Band 1 Y=90-98 ->205,390 ('205.39K')
+23:57:06    [OCR]   Band 2 Y=205-214 ->219,970 ('219.97K')
+23:57:06    [OCR]   Band 3 Y=321-329 ->17,418 ('17,418')
+23:57:06    [OCR]   HSV scan found 3 power values
+23:57:06      Found at y=493
+23:57:06      Clicking Battle at (3104, 853)
+23:57:26      Battle 1 complete
+23:57:26    [2/9] Targeting Power 43,691
+23:57:26      Searching for Power 43,691...
+23:57:31      At top (fling)
+23:57:31    [OCR]   Dual-column projection found 5 'Team Power:' rows
+23:57:31    [OCR]   Band 1 Y=64-72 -> no valid read
+23:57:32    [OCR]   Band 2 Y=145-154 ->129,210 ('129.21K')
+23:57:32    [OCR]   Band 3 Y=261-270 ->220,440 ('220.44K')
+23:57:32    [OCR]   Band 4 Y=377-385 ->205,390 ('205.39K')
+23:57:32    [OCR]   Band 5 Y=492-501 ->219,970 ('219.97K')
+23:57:32    [OCR]   HSV scan found 4 power values
+23:57:33    [OCR]   Dual-column projection found 5 'Team Power:' rows
+23:57:33    [OCR]   Band 1 Y=64-72 -> no valid read
+23:57:33    [OCR]   Band 2 Y=145-154 ->129,210 ('129.21K')
+23:57:33    [OCR]   Band 3 Y=261-270 ->220,440 ('220.44K')
+23:57:33    [OCR]   Band 4 Y=377-385 ->205,390 ('205.39K')
+23:57:33    [OCR]   Band 5 Y=492-501 ->219,970 ('219.97K')
+23:57:33    [OCR]   HSV scan found 4 power values
+23:57:37    [OCR]   Dual-column projection found 2 'Team Power:' rows
+23:57:37    [OCR]   Band 1 Y=90-98 ->205,390 ('205.39K')
+23:57:37    [OCR]   Band 2 Y=205-214 ->219,970 ('219.97K')
+23:57:37    [OCR]   HSV scan found 2 power values
+23:57:37    [OCR]   Dual-column projection found 2 'Team Power:' rows
+23:57:38    [OCR]   Band 1 Y=90-98 ->205,390 ('205.39K')
+23:57:38    [OCR]   Band 2 Y=205-214 ->219,970 ('219.97K')
+23:57:38    [OCR]   HSV scan found 2 power values
+23:57:41    [OCR]   Dual-column projection found 3 'Team Power:' rows
+23:57:41    [OCR]   Band 1 Y=265-274 ->178,890 ('178.89K')
+23:57:41    [OCR]   Band 2 Y=380-389 ->43,691 ('43,691')
+23:57:41    [OCR]   Band 3 Y=496-505 ->164,080 ('164.08K')
+23:57:41    [OCR]   HSV scan found 3 power values
+23:57:41      Found at y=552
+23:57:41      Clicking Battle at (3104, 912)
+23:58:04      Battle 2 complete
+23:58:04    [3/9] Targeting Power 49,691
+23:58:05      Searching for Power 49,691...
+23:58:09      At top (fling)
+23:58:10    [OCR]   Dual-column projection found 5 'Team Power:' rows
+23:58:10    [OCR]   Band 1 Y=64-72 -> no valid read
+23:58:10    [OCR]   Band 2 Y=145-154 ->129,210 ('129.21K')
+23:58:10    [OCR]   Band 3 Y=261-270 ->220,440 ('220.44K')
+23:58:10    [OCR]   Band 4 Y=377-385 ->205,390 ('205.39K')
+23:58:10    [OCR]   Band 5 Y=492-501 ->219,970 ('219.97K')
+23:58:10    [OCR]   HSV scan found 4 power values
+23:58:11    [OCR]   Dual-column projection found 5 'Team Power:' rows
+23:58:11    [OCR]   Band 1 Y=64-72 -> no valid read
+23:58:11    [OCR]   Band 2 Y=145-154 ->129,210 ('129.21K')
+23:58:12    [OCR]   Band 3 Y=261-270 ->220,440 ('220.44K')
+23:58:12    [OCR]   Band 4 Y=377-385 ->205,390 ('205.39K')
+23:58:12    [OCR]   Band 5 Y=492-501 ->219,970 ('219.97K')
+23:58:12    [OCR]   HSV scan found 4 power values
+23:58:15    [OCR]   Dual-column projection found 2 'Team Power:' rows
+23:58:15    [OCR]   Band 1 Y=90-98 ->205,390 ('205.39K')
+23:58:15    [OCR]   Band 2 Y=205-214 ->219,970 ('219.97K')
+23:58:15    [OCR]   HSV scan found 2 power values
+23:58:16    [OCR]   Dual-column projection found 2 'Team Power:' rows
+23:58:16    [OCR]   Band 1 Y=90-98 ->205,390 ('205.39K')
+23:58:16    [OCR]   Band 2 Y=205-214 ->219,970 ('219.97K')
+23:58:16    [OCR]   HSV scan found 2 power values
+23:58:19    [OCR]   Dual-column projection found 3 'Team Power:' rows
+23:58:19    [OCR]   Band 1 Y=265-274 ->178,890 ('178.89K')
+23:58:19    [OCR]   Band 2 Y=380-389 ->49,691 ('49,691')
+23:58:19    [OCR]   Band 3 Y=496-505 ->164,080 ('164.08K')
+23:58:19    [OCR]   HSV scan found 3 power values
+23:58:19      Found at y=552
+23:58:19      Opponent already defeated (gray button)
+23:58:19      Skipped (defeated)
+23:58:19    [4/9] Targeting Power 129,210
+23:58:20      ! List changed (match: 0.49)
+23:58:20      List refreshed — stopping attack phase for rescan
+23:58:20    Attack phase done: 2 battles, 0 not found, 1 skipped
+23:58:24    Refreshing opponent list (paid)...
+23:58:24  
+23:58:24    ┌─ CYCLE #3 (total battles: 3) ─┐
+23:58:28      At top (fling)
+23:58:28  
+23:58:28    [V2] Fluid scanning opponent list...
+23:58:28      Debug frames → e:\Projects\Misc\Dreamer\debug
+23:58:28    [OCR]   Dual-column projection found 4 'Team Power:' rows
+23:58:28    [OCR]   Band 1 Y=145-154 ->155,220 ('155.22K')
+23:58:28    [OCR]   Band 2 Y=261-270 ->271,550 ('271.55K')
+23:58:28    [OCR]   Band 3 Y=377-385 ->235,040 ('235.04K')
+23:58:28    [OCR]   Band 4 Y=492-501 ->353,210 ('353.21K')
+23:58:28    [OCR]   HSV scan found 4 power values
+23:58:28    [OCR]   [LVL] Row projection found 1 level bands
+23:58:29    [OCR]   [LVL] Band 1 Y=117-125 -> L6
+23:58:29    [OCR]   [LVL] Found 1 player levels
+23:58:29      Visible: 4 opponents (4 avail) — 155,220, 271,550, 235,040, 353,210
+23:58:29        + 4 snatched at top
