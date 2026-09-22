@@ -111,82 +111,87 @@ class ArenaListScanner:
             self.window_capture.get_window()
         return self.window_capture.window_info
 
-    # ── First-opponent snapshot for list-change detection ────────────
+    # ── List-change detection (2nd opponent snapshot) ────────────────
+
+    # Snapshot region: 2nd opponent row, left side only (portrait + name).
+    # Row 1 is at ~28-44% Y, Row 2 is at ~44-58% Y.
+    # Using row 2 avoids notification banners that appear over row 1.
+    _SNAPSHOT_Y_START = 0.44
+    _SNAPSHOT_Y_END = 0.58
+    _SNAPSHOT_X_START = 0.05
+    _SNAPSHOT_X_END = 0.40
 
     def snapshot_first_opponent(self):
         """
-        Capture a strip of the first opponent's portrait + name area.
-        Used later to detect if the game has refreshed the list (tier change).
+        Capture a portrait snapshot of the 2nd opponent row for
+        list-change detection.
 
-        Captures the portrait art, clan badge, level circle, and player name
-        — lots of unique detail that gives a near-perfect match (~0.99) for
-        the same opponent and a very low match for a different one.
+        Uses the 2nd row instead of the 1st to avoid game notification
+        banners ("Daily Challenge complete", quest popups, etc.) that
+        appear over the top of the list and would corrupt the snapshot.
 
         Must be called when the list is scrolled to the top.
-        Stores the snapshot internally.
         """
         frame = self.window_capture.capture()
         height, width = frame.shape[:2]
 
-        # First opponent row: portrait + name/clan area
-        # Includes character art, clan badge, level circle, name text
-        y1 = int(height * 0.28)
-        y2 = int(height * 0.44)
-        x1 = int(width * 0.05)
-        x2 = int(width * 0.40)
+        y1 = int(height * self._SNAPSHOT_Y_START)
+        y2 = int(height * self._SNAPSHOT_Y_END)
+        x1 = int(width * self._SNAPSHOT_X_START)
+        x2 = int(width * self._SNAPSHOT_X_END)
 
-        self._first_opponent_snapshot = frame[y1:y2, x1:x2].copy()
+        self._opponent_snapshot = frame[y1:y2, x1:x2].copy()
         self._snapshot_check_count = 0
-        self.log(f"    Snapshot first opponent ({x2-x1}x{y2-y1}px)")
+        self.log(f"    Snapshot 2nd opponent ({x2-x1}x{y2-y1}px)")
 
-        # Always save reference snapshot to logs dir (persists across scans)
+        # Save reference for debugging
         snapshot_dir = os.path.join(SCRIPT_DIR, 'logs', 'snapshots')
         os.makedirs(snapshot_dir, exist_ok=True)
         cv2.imwrite(os.path.join(snapshot_dir, 'reference.png'),
-                    self._first_opponent_snapshot)
+                    self._opponent_snapshot)
 
     def is_list_unchanged(self):
         """
-        Check if the first opponent still matches the stored snapshot.
-        Uses template matching — no OCR needed.
+        Check if the 2nd opponent still matches the stored snapshot.
+
+        Uses template matching on the portrait/name region of the 2nd
+        opponent row. This region is below the notification banner zone,
+        so popups don't cause false positives.
 
         Must be called when the list is scrolled to the top.
 
         Returns:
             True if the list appears unchanged, False if it has refreshed.
         """
-        if not hasattr(self, '_first_opponent_snapshot') or self._first_opponent_snapshot is None:
+        if not hasattr(self, '_opponent_snapshot') or self._opponent_snapshot is None:
             return True  # No snapshot to compare against
 
         frame = self.window_capture.capture()
         height, width = frame.shape[:2]
 
-        # Same crop region as snapshot
-        y1 = int(height * 0.28)
-        y2 = int(height * 0.44)
-        x1 = int(width * 0.05)
-        x2 = int(width * 0.40)
+        y1 = int(height * self._SNAPSHOT_Y_START)
+        y2 = int(height * self._SNAPSHOT_Y_END)
+        x1 = int(width * self._SNAPSHOT_X_START)
+        x2 = int(width * self._SNAPSHOT_X_END)
 
         current = frame[y1:y2, x1:x2]
 
-        result = cv2.matchTemplate(current, self._first_opponent_snapshot,
+        result = cv2.matchTemplate(current, self._opponent_snapshot,
                                    cv2.TM_CCOEFF_NORMED)
         _, max_val, _, _ = cv2.minMaxLoc(result)
 
         self._snapshot_check_count += 1
-
-        # Always log the match score for diagnostics
         self.log(f"    List check #{self._snapshot_check_count}: match={max_val:.4f}")
 
-        # Save comparison images to persistent location
+        # Save comparison image for debugging
         snapshot_dir = os.path.join(SCRIPT_DIR, 'logs', 'snapshots')
         os.makedirs(snapshot_dir, exist_ok=True)
         cv2.imwrite(os.path.join(snapshot_dir, f'check_{self._snapshot_check_count}.png'),
                     current)
 
-        # High correlation = same opponent. With the detailed portrait area,
-        # same opponent should give ~0.95+, different opponent ~0.3-0.5.
-        unchanged = max_val > 0.90
+        # Same opponent: ~0.75+ (may be subdued/grayed after defeat)
+        # Different opponent (list refresh): ~0.3-0.5
+        unchanged = max_val > 0.60
         if not unchanged:
             self.log(f"    ! List changed (match: {max_val:.4f})")
         return unchanged

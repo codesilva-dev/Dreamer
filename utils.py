@@ -37,8 +37,11 @@ def _get_file_logger():
 def log_message(widget, message):
     widget.log_output.append(message)
     QApplication.processEvents()
-    # Also write to log file
-    _get_file_logger().info(message)
+    # Also write to log file — flush immediately so logs survive a forced kill
+    logger = _get_file_logger()
+    logger.info(message)
+    for handler in logger.handlers:
+        handler.flush()
 
 def show_preview(image_label, frame):
     height, width, channel = frame.shape

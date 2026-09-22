@@ -64,20 +64,25 @@ class FreeShopItemsSequence:
 
     def _collect_all_claims(self, claim_template):
         """Find and click/move-to all claim buttons on the current view."""
+        self.clicker.natural_delay(0.5)
+
+        # Find ALL claim buttons at once so we don't miss any
+        all_buttons = self.template_matcher.find_all_templates(
+            claim_template, threshold=0.7
+        )
+
+        if not all_buttons:
+            return 0
+
+        self.log(f'    Found {len(all_buttons)} claim button(s)')
+
         claims = 0
-        for _ in range(10):
+        for bx, by in all_buttons:
             if self.should_stop():
                 break
-            self.clicker.natural_delay(0.5)
-            found, location, _ = self.template_matcher.find_template(
-                claim_template, threshold=0.8
-            )
-            if not found:
-                break
             claims += 1
-            self._click_or_move(location, f'Claim #{claims}')
-            if self.dry_run:
-                break
+            self._click_or_move((bx, by), f'Claim #{claims}')
+
         return claims
 
     def run(self):

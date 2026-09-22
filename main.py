@@ -536,7 +536,7 @@ class DreamerApp(QWidget):
             self.run_classic_arena_btn.setEnabled(True)
 
     def run_free_shop_items(self):
-        """Navigate to Shop > Market and find free items (dry run — move only)."""
+        """Navigate to Shop and collect all free items."""
         try:
             self.stop_requested = False
             self.stop_btn.setEnabled(True)
@@ -545,7 +545,7 @@ class DreamerApp(QWidget):
             seq = FreeShopItemsSequence(
                 self.window_capture, self.template_matcher,
                 self.log, stop_check=self.is_stop_requested,
-                dry_run=True
+                dry_run=False
             )
             seq.run()
 
