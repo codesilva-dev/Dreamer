@@ -22,6 +22,7 @@ from config import (
     TEMPLATE_CLAIM_PACK,
     TEMPLATE_LIMITED_OFFERS,
     TEMPLATE_SMALL_PACK,
+    TEMPLATE_SMALL_PACK_2,
     TEMPLATE_BACK,
 )
 
@@ -62,26 +63,46 @@ class FreeShopItemsSequence:
             self.clicker.click()
             self.clicker.natural_delay(2.0)
 
-    def _collect_all_claims(self, claim_template):
-        """Find and click/move-to all claim buttons on the current view."""
-        self.clicker.natural_delay(0.5)
+    def _collect_all_claims(self, claim_template, confirm_template=None):
+        """
+        Find and click all claim buttons on the current view, one at a time.
 
-        # Find ALL claim buttons at once so we don't miss any
-        all_buttons = self.template_matcher.find_all_templates(
-            claim_template, threshold=0.7
-        )
+        Re-scans after each claim+confirm cycle because the UI shifts
+        after collecting an item. Stops when no more claim buttons are found.
 
-        if not all_buttons:
-            return 0
-
-        self.log(f'    Found {len(all_buttons)} claim button(s)')
-
+        Args:
+            claim_template: Template for the claim button to find.
+            confirm_template: Optional template for a confirmation dialog
+                (e.g. claimGift.png) that appears after clicking a claim.
+                If found, it will be clicked before continuing.
+        """
         claims = 0
-        for bx, by in all_buttons:
+
+        for _ in range(20):  # safety cap
             if self.should_stop():
                 break
+
+            self.clicker.natural_delay(0.5)
+            found, loc, _ = self.template_matcher.find_template(
+                claim_template, threshold=0.7
+            )
+            if not found:
+                break
+
             claims += 1
-            self._click_or_move((bx, by), f'Claim #{claims}')
+            self._click_or_move(loc, f'Claim #{claims}')
+
+            # Click confirmation dialog if one appears
+            if confirm_template and not self.dry_run:
+                self.clicker.natural_delay(1.0)
+                cfound, _, _ = self.template_matcher.find_template(
+                    confirm_template, threshold=0.8
+                )
+                if cfound:
+                    self.template_matcher.find_and_click(
+                        confirm_template, wait_after=1.5
+                    )
+                    self.log(f'    Confirmed claim gift')
 
         return claims
 
@@ -123,7 +144,8 @@ class FreeShopItemsSequence:
 
             # Step 2: Packs tab (default landing page)
             self.log('  Scanning Packs tab...')
-            claims = self._collect_all_claims(TEMPLATE_CLAIM_PACK)
+            claims = self._collect_all_claims(TEMPLATE_CLAIM_PACK,
+                                              confirm_template=TEMPLATE_CLAIM_GIFT)
             total += claims
             if claims:
                 self.log(f'  Packs: {claims} claim(s)')
@@ -146,7 +168,17 @@ class FreeShopItemsSequence:
                 sp_found, _, _ = self.template_matcher.find_template(
                     TEMPLATE_SMALL_PACK, threshold=0.8
                 )
-                if sp_found:
+                if not sp_found:
+                    sp_found, _, _ = self.template_matcher.find_template(
+                        TEMPLATE_SMALL_PACK_2, threshold=0.8
+                    )
+                    if sp_found:
+                        self.log('  Clicking Small Pack tab (v2)...')
+                        self.template_matcher.find_and_click(
+                            TEMPLATE_SMALL_PACK_2, wait_after=CLICK_DELAY
+                        )
+                        self.clicker.natural_delay(1.0)
+                else:
                     self.log('  Clicking Small Pack tab...')
                     self.template_matcher.find_and_click(
                         TEMPLATE_SMALL_PACK, wait_after=CLICK_DELAY

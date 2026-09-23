@@ -5,6 +5,8 @@ import time
 import os
 import json
 import pyautogui
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from pynput import keyboard as pynput_keyboard
 from PyQt5.QtWidgets import (QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QTextEdit, QMessageBox, QGroupBox, QDoubleSpinBox, QSpinBox, QComboBox, QCheckBox, QInputDialog)
 from PyQt5.QtCore import Qt, QTimer
@@ -31,6 +33,7 @@ from sequences.check_market import CheckMarketSequence
 from sequences.quests import QuestsSequence
 from sequences.sum3 import Sum3Sequence
 from sequences.iron_twins import IronTwinsSequence
+from sequences.playtime_rewards import PlaytimeRewardsSequence
 import config
 
 
@@ -80,6 +83,12 @@ class DreamerApp(QWidget):
 
         # Start global kill switch hotkey listener (Ctrl+Shift+Q)
         self._start_kill_switch()
+
+        # Daily state tracking (7 PM EST reset cycle)
+        self.daily_state = {
+            'last_reset': None,           # datetime: last acknowledged 7 PM boundary
+            'it_keys_exhausted': False,   # Iron Twins: True when 0/6 keys
+        }
 
         # Load saved settings (arena filters, etc.)
         self._load_settings()
@@ -172,6 +181,10 @@ class DreamerApp(QWidget):
         self.run_sum3_btn.clicked.connect(self.run_sum3)
         runs_layout.addWidget(self.run_sum3_btn)
 
+        self.run_playtime_btn = QPushButton('Playtime Rewards')
+        self.run_playtime_btn.clicked.connect(self.run_playtime_rewards)
+        runs_layout.addWidget(self.run_playtime_btn)
+
         # Iron Twins: stage selector + gear-up macro + run button
         runs_layout.addWidget(QLabel('IT Stage:'))
         self.it_stage_spin = QSpinBox()
@@ -223,6 +236,17 @@ class DreamerApp(QWidget):
         self.arena_max_level_spin.setToolTip('Skip opponents above this level (0 = no limit)')
         self.arena_max_level_spin.valueChanged.connect(self._on_arena_max_level_changed)
         config_row.addWidget(self.arena_max_level_spin)
+
+        config_row.addWidget(QLabel('OR Power ≤:'))
+        self.arena_or_power_spin = QSpinBox()
+        self.arena_or_power_spin.setRange(0, 999000)
+        self.arena_or_power_spin.setSingleStep(10000)
+        self.arena_or_power_spin.setValue(config.ARENA_OR_POWER)
+        self.arena_or_power_spin.setSpecialValueText('Off')
+        self.arena_or_power_spin.setToolTip(
+            'Always fight opponents at or below this power, regardless of level (0 = off)')
+        self.arena_or_power_spin.valueChanged.connect(self._on_arena_or_power_changed)
+        config_row.addWidget(self.arena_or_power_spin)
 
         config_row.addStretch()
         arena_config_layout.addLayout(config_row)
@@ -381,6 +405,9 @@ class DreamerApp(QWidget):
         if 'arena_max_level' in settings:
             val = int(settings['arena_max_level'])
             self.arena_max_level_spin.setValue(val)  # triggers _on_arena_max_level_changed
+        if 'arena_or_power' in settings:
+            val = int(settings['arena_or_power'])
+            self.arena_or_power_spin.setValue(val)  # triggers _on_arena_or_power_changed
         if 'iron_twins_stage' in settings:
             val = int(settings['iron_twins_stage'])
             self.it_stage_spin.setValue(val)  # triggers _on_it_stage_changed
@@ -390,19 +417,80 @@ class DreamerApp(QWidget):
             if idx >= 0:
                 self.it_macro_combo.setCurrentIndex(idx)
 
+        # Daily state
+        if 'daily_state' in settings:
+            ds = settings['daily_state']
+            if ds.get('last_reset'):
+                try:
+                    self.daily_state['last_reset'] = datetime.fromisoformat(ds['last_reset'])
+                except (ValueError, TypeError):
+                    pass
+            self.daily_state['it_keys_exhausted'] = ds.get('it_keys_exhausted', False)
+
     def _save_settings(self):
         """Save current settings to settings.json."""
+        # Serialize daily_state for JSON
+        ds_serialized = {
+            'last_reset': self.daily_state['last_reset'].isoformat()
+                          if self.daily_state['last_reset'] else None,
+            'it_keys_exhausted': self.daily_state['it_keys_exhausted'],
+        }
+
         settings = {
             'arena_max_power': config.ARENA_MAX_OPPONENT_POWER,
             'arena_max_level': config.ARENA_MAX_OPPONENT_LEVEL,
+            'arena_or_power': config.ARENA_OR_POWER,
             'iron_twins_stage': config.IRON_TWINS_STAGE,
             'iron_twins_macro': self.it_macro_combo.currentText(),
+            'daily_state': ds_serialized,
         }
         try:
             with open(self.SETTINGS_FILE, 'w') as f:
                 json.dump(settings, f, indent=2)
         except OSError:
             pass
+
+    # ── Daily reset (7 PM EST cycle) ─────────────────────────────
+
+    def _check_daily_reset(self):
+        """
+        Check if 7 PM EST has passed since last reset. If so, clear all
+        exhaustion flags. Call this at the top of each daily loop iteration.
+
+        Safe to call at any time — if the app was busy at 7 PM, it will
+        catch the reset whenever it next checks (7:05, 7:30, etc.).
+        """
+        est = ZoneInfo('America/New_York')
+        now = datetime.now(est)
+
+        # Find the most recent 7 PM EST boundary
+        today_reset = now.replace(hour=19, minute=0, second=0, microsecond=0)
+        if now < today_reset:
+            last_boundary = today_reset - timedelta(days=1)
+        else:
+            last_boundary = today_reset
+
+        # If we've never reset, or the last reset was before the latest boundary
+        last = self.daily_state['last_reset']
+        if last is not None and last.tzinfo is None:
+            last = last.replace(tzinfo=est)
+
+        if last is None or last < last_boundary:
+            self.daily_state['last_reset'] = now
+            self.daily_state['it_keys_exhausted'] = False
+            # Future flags reset here too
+            self.log('Daily reset (7 PM EST) — all tasks refreshed')
+            self._save_settings()
+
+    def _it_keys_available(self):
+        """Check if Iron Twins keys are available (not exhausted this cycle)."""
+        return not self.daily_state['it_keys_exhausted']
+
+    def _mark_it_keys_exhausted(self):
+        """Mark Iron Twins keys as exhausted for this daily cycle."""
+        self.daily_state['it_keys_exhausted'] = True
+        self.log('Iron Twins: keys exhausted (resets at 7 PM EST)')
+        self._save_settings()
 
     # ── Arena config handlers ─────────────────────────────────────
 
@@ -422,6 +510,15 @@ class DreamerApp(QWidget):
             self.log('Arena config: max level = no limit')
         else:
             self.log(f'Arena config: max level = {value}')
+        self._save_settings()
+
+    def _on_arena_or_power_changed(self, value):
+        """Update the config module's ARENA_OR_POWER at runtime."""
+        config.ARENA_OR_POWER = value
+        if value == 0:
+            self.log('Arena config: OR power = off')
+        else:
+            self.log(f'Arena config: OR power ≤ {value:,}')
         self._save_settings()
 
     def _on_it_stage_changed(self, value):
@@ -668,6 +765,28 @@ class DreamerApp(QWidget):
             self.stop_requested = False
             self.run_check_market_btn.setEnabled(True)
 
+    def run_playtime_rewards(self):
+        """Collect all available playtime rewards."""
+        try:
+            self.stop_requested = False
+            self.stop_btn.setEnabled(True)
+            self.run_playtime_btn.setEnabled(False)
+
+            seq = PlaytimeRewardsSequence(
+                self.window_capture, self.template_matcher,
+                self.log, stop_check=self.is_stop_requested
+            )
+            seq.run()
+
+        except Exception as e:
+            import traceback
+            self.log(f'Error: {e}')
+            self.log(traceback.format_exc())
+        finally:
+            self.stop_btn.setEnabled(False)
+            self.stop_requested = False
+            self.run_playtime_btn.setEnabled(True)
+
     def run_quests(self):
         """Open quests panel and log daily quest status."""
         try:
@@ -719,6 +838,12 @@ class DreamerApp(QWidget):
             self.stop_btn.setEnabled(True)
             self.run_iron_twins_btn.setEnabled(False)
 
+            # Check daily reset and key availability
+            self._check_daily_reset()
+            if not self._it_keys_available():
+                self.log('Iron Twins: no keys remaining (resets at 7 PM EST)')
+                return
+
             # Get gear-up macro name (None if "(None)" selected)
             macro_name = self.it_macro_combo.currentText()
             if macro_name == '(None)':
@@ -729,7 +854,11 @@ class DreamerApp(QWidget):
                 self.log, stop_check=self.is_stop_requested,
                 gear_macro=macro_name,
             )
-            seq.run()
+            result = seq.run()
+
+            # If the sequence reports keys exhausted, mark state
+            if result and isinstance(result, dict) and result.get('keys_exhausted'):
+                self._mark_it_keys_exhausted()
 
         except Exception as e:
             import traceback

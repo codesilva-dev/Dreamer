@@ -1,6 +1,11 @@
 {
   "arena_max_power": 300000,
   "arena_max_level": 65,
+  "arena_or_power": 130000,
   "iron_twins_stage": 13,
-  "iron_twins_macro": "(None)"
+  "iron_twins_macro": "(None)",
+  "daily_state": {
+    "last_reset": "2026-09-22T22:51:15.162182-04:00",
+    "it_keys_exhausted": false
+  }
 }

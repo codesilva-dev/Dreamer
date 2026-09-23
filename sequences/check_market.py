@@ -40,7 +40,7 @@ class CheckMarketSequence:
             self.window_capture.get_window()
 
             found, _, _ = self.template_matcher.find_template(
-                TEMPLATE_FRESH_MARKET, threshold=0.96
+                TEMPLATE_FRESH_MARKET, threshold=0.93
             )
             if not found:
                 self.log('  Fresh Market not found — skipping')

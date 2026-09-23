@@ -3,7 +3,13 @@ Classic Arena Sequence V2 — Vision-based orchestrator.
 
 Coordinates: scan list → sort targets → attack all → refresh → repeat.
 Uses ArenaListScanner for scanning and ArenaBattleRunner for attacking.
+
+When no free refresh is available, waits 15 minutes for the refresh timer
+to reset, then tries again. Only stops when truly out of arena tokens
+(0 tokens and no free refill available).
 """
+
+import time
 
 from sequences.arena_scanner_v2 import ArenaListScanner
 from sequences.arena_battle_v2 import ArenaBattleRunner
@@ -14,6 +20,9 @@ from config import (
     TEMPLATE_FREE_REFRESH,
     TEMPLATE_BACK,
 )
+
+# How long to wait (seconds) when no free refresh is available
+REFRESH_WAIT_SECONDS = 15 * 60  # 15 minutes
 
 
 class ClassicArenaSequenceV2:
@@ -50,6 +59,13 @@ class ClassicArenaSequenceV2:
         """
         Filter out defeated/too-strong/too-high-level opponents and sort by power.
 
+        Filter logic per opponent:
+            Pass if (power <= max_power AND level <= max_level)
+                 OR (power <= or_power)
+
+        The OR condition catches easy wins from high-level players with
+        weak teams, regardless of their level.
+
         Returns:
             Sorted list of available opponents.
         """
@@ -59,18 +75,48 @@ class ClassicArenaSequenceV2:
         if defeated > 0:
             self.log(f"  Filtered out {defeated} already defeated")
 
-        # Filter by max power
-        if config.ARENA_MAX_OPPONENT_POWER > 0:
-            before = len(available)
-            available = [o for o in available if o['power'] <= config.ARENA_MAX_OPPONENT_POWER]
-            self.log(f"  Power filter: {before} → {len(available)} (max {config.ARENA_MAX_OPPONENT_POWER:,})")
+        max_power = config.ARENA_MAX_OPPONENT_POWER
+        max_level = config.ARENA_MAX_OPPONENT_LEVEL
+        or_power = config.ARENA_OR_POWER
 
-        # Filter by max level
-        if config.ARENA_MAX_OPPONENT_LEVEL > 0:
+        # Combined filter: (power AND level) OR or_power
+        if max_power > 0 or max_level > 0 or or_power > 0:
             before = len(available)
-            available = [o for o in available
-                         if o.get('level') is None or o['level'] <= config.ARENA_MAX_OPPONENT_LEVEL]
-            self.log(f"  Level filter: {before} → {len(available)} (max L{config.ARENA_MAX_OPPONENT_LEVEL})")
+            filtered = []
+            for o in available:
+                power = o['power']
+                level = o.get('level')
+
+                # Check primary condition: power <= max AND level <= max
+                # When level is None (OCR couldn't read it confidently),
+                # assume the level is TOO HIGH — don't let unknown-level
+                # opponents pass the primary filter. They can still pass
+                # via the OR power condition if their power is low enough.
+                passes_primary = True
+                if max_power > 0 and power > max_power:
+                    passes_primary = False
+                if max_level > 0:
+                    if level is None or level > max_level:
+                        passes_primary = False
+
+                # Check OR condition: power <= or_power (regardless of level)
+                passes_or = or_power > 0 and power <= or_power
+
+                if passes_primary or passes_or:
+                    filtered.append(o)
+
+            available = filtered
+
+            # Log what filters were applied
+            parts = []
+            if max_power > 0:
+                parts.append(f"power ≤ {max_power:,}")
+            if max_level > 0:
+                parts.append(f"level ≤ L{max_level}")
+            filter_desc = ' AND '.join(parts) if parts else 'none'
+            if or_power > 0:
+                filter_desc += f" OR power ≤ {or_power:,}"
+            self.log(f"  Filter ({filter_desc}): {before} → {len(available)}")
 
         # Sort
         available.sort(key=lambda x: x['power'],
@@ -109,6 +155,72 @@ class ClassicArenaSequenceV2:
             else:
                 self.log(f'    Reached home (no more Back buttons)')
                 break
+
+    def _check_tokens_or_stop(self):
+        """
+        Check if we have arena tokens. If empty, try free refill.
+
+        Returns:
+            True if we have tokens (or got a free refill).
+            False if truly out of tokens (stop the session).
+        """
+        token_status = self.battle_runner.ensure_arena_tokens()
+        if token_status == 'no_tokens':
+            self.log('  Out of arena tokens — session complete')
+            return False
+        return True
+
+    def _refresh_or_wait(self):
+        """
+        Try to refresh the opponent list. If no free refresh, check
+        tokens and wait 15 minutes for the refresh timer to reset.
+
+        Returns:
+            True if we should continue (refreshed or waited).
+            False if we should stop (out of tokens).
+        """
+        # First make sure we have tokens
+        token_status = self.battle_runner.ensure_arena_tokens()
+        if token_status == 'no_tokens':
+            self.log('  Out of arena tokens — session complete')
+            return False
+
+        # Try free refresh
+        if self.click_refresh_list():
+            return True
+
+        # No free refresh — wait for timer to reset
+        wait_min = REFRESH_WAIT_SECONDS // 60
+        self.log(f'  No free refresh — waiting {wait_min} minutes for reset...')
+
+        elapsed = 0
+        while elapsed < REFRESH_WAIT_SECONDS:
+            if self.should_stop():
+                self.log('  STOPPED BY USER during wait')
+                return False
+
+            # Sleep in 30-second chunks so stop checks are responsive
+            time.sleep(30)
+            elapsed += 30
+            remaining = (REFRESH_WAIT_SECONDS - elapsed) // 60
+            if remaining > 0 and elapsed % 60 == 0:
+                self.log(f'    {remaining} minute(s) remaining...')
+
+        self.log('  Wait complete — trying refresh again')
+
+        # Try refresh again after waiting
+        if self.click_refresh_list():
+            return True
+
+        # Still no refresh — check tokens one more time
+        token_status = self.battle_runner.ensure_arena_tokens()
+        if token_status == 'no_tokens':
+            self.log('  Out of arena tokens — session complete')
+            return False
+
+        # Have tokens but refresh failed — try once more
+        self.log('  Refresh still unavailable — retrying...')
+        return self.click_refresh_list()
 
     def run(self, scan_only=False, test_single_attack=False, max_battles=None):
         """
@@ -189,11 +301,7 @@ class ClassicArenaSequenceV2:
 
                 if not opponents:
                     self.log('  No opponents found — refreshing...')
-                    token_status = self.battle_runner.ensure_arena_tokens()
-                    if token_status == 'no_tokens':
-                        break
-                    if not self.click_refresh_list():
-                        self.log('  No free refresh and no opponents — done')
+                    if not self._refresh_or_wait():
                         break
                     continue
 
@@ -202,11 +310,7 @@ class ClassicArenaSequenceV2:
 
                 if not targets:
                     self.log('  No available targets — refreshing...')
-                    token_status = self.battle_runner.ensure_arena_tokens()
-                    if token_status == 'no_tokens':
-                        break
-                    if not self.click_refresh_list():
-                        self.log('  No free refresh and no valid targets — done')
+                    if not self._refresh_or_wait():
                         break
                     continue
 
@@ -224,7 +328,13 @@ class ClassicArenaSequenceV2:
                     break
 
                 if results['exit_reason'] == 'no_tokens':
-                    break
+                    # Out of tokens mid-attack — check if we can refill
+                    if not self._check_tokens_or_stop():
+                        break
+                    # Got tokens back, continue to refresh
+                    if not self._refresh_or_wait():
+                        break
+                    continue
 
                 # If the game already refreshed the list (tier change),
                 # skip clicking refresh — just rescan the new list.
@@ -233,11 +343,7 @@ class ClassicArenaSequenceV2:
                     continue
 
                 # Phase 4: Refresh for next cycle
-                token_status = self.battle_runner.ensure_arena_tokens()
-                if token_status == 'no_tokens':
-                    break
-                if not self.click_refresh_list():
-                    self.log('  No free refresh available — done')
+                if not self._refresh_or_wait():
                     break
 
             # ── Done ───────────────────────────────────────────────

@@ -779,7 +779,7 @@ class TextRecognizer:
                             continue
 
                     power = self._parse_power_string(raw_power)
-                    if power is not None and 50000 <= power <= 999000:
+                    if power is not None and 1000 <= power <= 999000:
                         all_reads.append((power, raw_text, band_strip))
 
             # Pick winner: require 2+ votes (majority). Ties broken by
@@ -1194,10 +1194,25 @@ class TextRecognizer:
             if all_reads:
                 counts = Counter(all_reads)
                 strict_counts = Counter(strict_reads)
-                best_level = max(counts.keys(),
-                                 key=lambda v: (len(str(v)),
-                                                strict_counts.get(v, 0),
-                                                counts[v]))
+
+                # Confidence gate: require at least 3 total reads OR at
+                # least 1 strict read. With fewer reads, single-digit
+                # misreads (e.g. 70→7, 80→8) can't be distinguished from
+                # real single-digit levels. When rejected, the level is
+                # set to None so the arena filter applies only the power
+                # condition for this opponent.
+                total_reads = len(all_reads)
+                total_strict = len(strict_reads)
+                if total_reads < 3 and total_strict < 1:
+                    self._debug_log(f"  [LVL] Pos {pos_idx + 1} Y={target_y} -> REJECTED "
+                                    f"(low confidence: {total_reads} reads, {total_strict} strict, "
+                                    f"values={dict(counts)})")
+                    best_level = None
+                else:
+                    best_level = max(counts.keys(),
+                                     key=lambda v: (len(str(v)),
+                                                    strict_counts.get(v, 0),
+                                                    counts[v]))
 
             # Debug annotation
             if debug_dir:

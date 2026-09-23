@@ -12,6 +12,7 @@ Stage selection strategy:
 
 import os
 import re
+import time
 import cv2
 import pyautogui
 
@@ -26,8 +27,10 @@ from macro_recorder import MacroRecorder, MacroPlayer
 from config import (
     TEMPLATE_BATTLE, TEMPLATE_DUNGEONS, TEMPLATE_IRON_TWINS,
     TEMPLATE_IT_ICON, TEMPLATE_PVE_BATTLE, TEMPLATE_BACK,
+    TEMPLATE_IT_NO_KEY, TEMPLATE_IT_NO_KEY_STAGES,
+    TEMPLATE_IT_REPLAY, TEMPLATE_BASTION,
     IRON_TWINS_SCROLL_REGION, IRON_TWINS_SCROLL_DELAY,
-    IRON_TWINS_MAX_SCROLL_ATTEMPTS,
+    IRON_TWINS_MAX_SCROLL_ATTEMPTS, IRON_TWINS_BATTLE_TIMEOUT,
     CLICK_DELAY, SCRIPT_DIR,
 )
 import config
@@ -225,6 +228,46 @@ class IronTwinsSequence:
 
     # ── Stage selection ──────────────────────────────────────────────
 
+    def _click_stage_button(self, frame, stage_pos, target_stage, debug_label):
+        """
+        Given a found stage text position, find and click its battle button.
+
+        Returns:
+            True if button was clicked, False if stage is locked,
+            None if no determination could be made.
+        """
+        sx, sy = stage_pos
+        self.log(f'  Found Stage {target_stage} text at Y={sy}')
+
+        buttons = self.template_matcher.find_all_templates(
+            TEMPLATE_PVE_BATTLE, threshold=self.BUTTON_THRESHOLD
+        )
+
+        self._save_debug(f'{debug_label}_found', frame,
+                         stage_pos=stage_pos, buttons=buttons,
+                         target_stage=target_stage)
+
+        best_button = None
+        best_dist = float('inf')
+        for bx, by in buttons:
+            dist = abs(by - sy)
+            if dist < best_dist:
+                best_dist = dist
+                best_button = (bx, by)
+
+        if best_button and best_dist <= self.Y_MATCH_TOLERANCE:
+            bx, by = best_button
+            self.log(f'  Clicking battle button at ({bx}, {by}) '
+                     f'(Y offset: {best_dist}px)')
+            self.template_matcher.click_at_offset(
+                bx, by, wait_after=CLICK_DELAY
+            )
+            return True
+        else:
+            self.log(f'  Stage {target_stage} is locked — '
+                     f'no battle button near Y={sy}')
+            return False
+
     def _select_stage(self, target_stage):
         """
         Scroll through the stage list and use OCR to find "Stage N" text.
@@ -234,7 +277,16 @@ class IronTwinsSequence:
         Returns:
             True if the target button was clicked, False otherwise.
         """
-        # Scroll to top first for a consistent starting point
+        # Check current view first — the target stage may already be visible
+        frame = self.window_capture.capture()
+        stage_pos = self._find_stage_text(frame, target_stage)
+        if stage_pos:
+            self.log(f'  Stage {target_stage} already visible — skipping scroll')
+            result = self._click_stage_button(frame, stage_pos, target_stage, 'initial')
+            if result is not None:
+                return result
+
+        # Not visible — scroll to top for a consistent starting point
         self.log('  Scrolling to top of stage list...')
         self._scroll_to_edge('up')
 
@@ -252,40 +304,11 @@ class IronTwinsSequence:
             stage_pos = self._find_stage_text(frame, target_stage)
 
             if stage_pos:
-                sx, sy = stage_pos
-                self.log(f'  Found Stage {target_stage} text at Y={sy}')
-
-                # Find all battle buttons on screen
-                buttons = self.template_matcher.find_all_templates(
-                    TEMPLATE_PVE_BATTLE, threshold=self.BUTTON_THRESHOLD
+                result = self._click_stage_button(
+                    frame, stage_pos, target_stage, f'scroll_{scroll_attempt}'
                 )
-
-                # Save debug with stage position and buttons
-                self._save_debug(f'scroll_{scroll_attempt}_found', frame,
-                                 stage_pos=stage_pos, buttons=buttons,
-                                 target_stage=target_stage)
-
-                # Find the button closest to the stage text's Y
-                best_button = None
-                best_dist = float('inf')
-                for bx, by in buttons:
-                    dist = abs(by - sy)
-                    if dist < best_dist:
-                        best_dist = dist
-                        best_button = (bx, by)
-
-                if best_button and best_dist <= self.Y_MATCH_TOLERANCE:
-                    bx, by = best_button
-                    self.log(f'  Clicking battle button at ({bx}, {by}) '
-                             f'(Y offset: {best_dist}px)')
-                    self.template_matcher.click_at_offset(
-                        bx, by, wait_after=CLICK_DELAY
-                    )
-                    return True
-                else:
-                    self.log(f'  Stage {target_stage} is locked — '
-                             f'no battle button near Y={sy}')
-                    return False
+                if result is not None:
+                    return result
 
             # Save debug screenshot showing what we see
             self._save_debug(f'scroll_{scroll_attempt}', frame,
@@ -327,14 +350,107 @@ class IronTwinsSequence:
         self.log(f'  Gear macro complete')
         return True
 
-    # ── Main run ─────────────────────────────────────────────────────
+    # ── Battle ─────────────────────────────────────────────────────
+
+    def _start_battle(self):
+        """
+        Click the PVE battle button on the stage detail screen to start
+        the actual fight.
+
+        Returns:
+            True if battle button was clicked, False if not found.
+        """
+        self.clicker.natural_delay(1.0)
+        found, _, _ = self.template_matcher.find_template(
+            TEMPLATE_PVE_BATTLE, threshold=self.BUTTON_THRESHOLD
+        )
+        if not found:
+            self.log('  PVE Battle button not found on stage screen')
+            return False
+
+        self.template_matcher.find_and_click(
+            TEMPLATE_PVE_BATTLE, threshold=self.BUTTON_THRESHOLD,
+            wait_after=CLICK_DELAY
+        )
+        self.log('  Clicked PVE Battle — fight starting')
+        return True
+
+    def _wait_for_battle_end(self):
+        """
+        Poll for ITNoKey or ITReplay after a battle finishes.
+
+        - ITNoKey means keys are exhausted (0/6) — click bastion to exit.
+        - ITReplay means keys remain — click it to go back to stage screen.
+
+        Returns:
+            'replay' if ITReplay was clicked (keys remain),
+            'no_key' if ITNoKey was found (keys exhausted),
+            'timeout' if neither appeared within the timeout.
+        """
+        timeout = IRON_TWINS_BATTLE_TIMEOUT
+        check_interval = 3.0
+        start = time.time()
+
+        self.log(f'  Waiting for battle to end (timeout: {timeout}s)...')
+
+        while time.time() - start < timeout:
+            if self.should_stop():
+                return 'timeout'
+
+            # Check for no keys first (takes priority)
+            # High threshold needed — the key icon matches 0/6 and 2/6
+            # at ~0.95, only the digit differs (0/6 = 1.0, 2/6 = 0.945)
+            found, _, _ = self.template_matcher.find_template(
+                TEMPLATE_IT_NO_KEY, threshold=0.96
+            )
+            if found:
+                elapsed = int(time.time() - start)
+                self.log(f'  Battle complete ({elapsed}s) — no keys remaining')
+                # Click bastion to exit
+                self.clicker.natural_delay(0.5)
+                self.template_matcher.find_and_click(
+                    TEMPLATE_BASTION, threshold=0.8, wait_after=2.0
+                )
+                self.log('  Clicked Bastion — exiting Iron Twins')
+                return 'no_key'
+
+            # Check for replay (keys remain)
+            found, _, _ = self.template_matcher.find_template(
+                TEMPLATE_IT_REPLAY, threshold=0.8
+            )
+            if found:
+                elapsed = int(time.time() - start)
+                self.log(f'  Battle complete ({elapsed}s)')
+                self.template_matcher.find_and_click(
+                    TEMPLATE_IT_REPLAY, threshold=0.8, wait_after=2.0
+                )
+                self.log('  Clicked Replay')
+                return 'replay'
+
+            self.clicker.natural_delay(check_interval)
+
+        self.log(f'  Timeout waiting for battle end ({timeout}s)')
+        return 'timeout'
+
+    def _check_keys_exhausted(self):
+        """
+        Check if the 0/6 keys indicator is visible on the stage menu screen.
+
+        Returns:
+            True if keys are exhausted (0/6 template found), False otherwise.
+        """
+        found, _, _ = self.template_matcher.find_template(
+            TEMPLATE_IT_NO_KEY_STAGES, threshold=0.96
+        )
+        return found
 
     def run(self):
         """
         Run the full Iron Twins sequence.
 
         Returns:
-            True if completed successfully, False on error/abort.
+            dict with 'success' and 'keys_exhausted' keys,
+            or False on error/abort.
         """
         target_stage = config.IRON_TWINS_STAGE
         self.log('')
@@ -397,11 +513,60 @@ class IronTwinsSequence:
             if self.should_stop():
                 return False
 
-            # Step 5: Run gear-up macro (if configured)
+            # Step 5: Check if keys are exhausted before first battle
             self.clicker.natural_delay(1.0)
+            if self._check_keys_exhausted():
+                self.log('  No keys remaining (0/6) — navigating home')
+                # Back 3 times: stage menu → dungeons → battle → home
+                for i in range(3):
+                    self.template_matcher.find_and_click(
+                        TEMPLATE_BACK, threshold=0.8, wait_after=1.5
+                    )
+                return {'success': False, 'keys_exhausted': True}
+
+            # Step 6: Run gear-up macro (if configured)
             self._run_gear_macro()
 
-            return True
+            if self.should_stop():
+                return False
+
+            # Step 7: Battle loop — fight until keys run out
+            battles = 0
+            max_battles = 6  # Iron Twins gives 6 keys per day
+            need_start = True  # First battle needs PVE Battle click
+
+            for battle_num in range(max_battles):
+                if self.should_stop():
+                    break
+
+                self.log(f'')
+                self.log(f'  ┌─ Battle {battle_num + 1} ─┐')
+
+                # Only click PVE Battle for the first fight;
+                # after Replay, the battle starts automatically
+                if need_start:
+                    if not self._start_battle():
+                        self.log('  Could not start battle — stopping')
+                        break
+                else:
+                    self.log('  Replay clicked — battle starting automatically')
+
+                # Wait for battle to end and check result
+                result = self._wait_for_battle_end()
+                battles += 1
+
+                if result == 'no_key':
+                    self.log(f'  Keys exhausted after {battles} battle(s)')
+                    return {'success': True, 'keys_exhausted': True}
+                elif result == 'timeout':
+                    self.log('  Battle did not complete — stopping')
+                    break
+                # result == 'replay': Replay was clicked, next battle auto-starts
+                need_start = False
+
+            self.log(f'')
+            self.log(f'  Iron Twins complete — {battles} battle(s)')
+            return {'success': True, 'keys_exhausted': battles >= max_battles}
 
         except Exception as e:
             import traceback

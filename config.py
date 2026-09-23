@@ -28,6 +28,7 @@ TEMPLATE_CLAIM_GIFT = os.path.join(TEMPLATES_DIR, 'ClaimGift.png')
 TEMPLATE_CLAIM_PACK = os.path.join(TEMPLATES_DIR, 'ClaimPack.png')
 TEMPLATE_LIMITED_OFFERS = os.path.join(TEMPLATES_DIR, 'LimitedOffers.png')
 TEMPLATE_SMALL_PACK = os.path.join(TEMPLATES_DIR, 'SmallPack.png')
+TEMPLATE_SMALL_PACK_2 = os.path.join(TEMPLATES_DIR, 'smallpack2.png')
 TEMPLATE_FREE_ICON = os.path.join(TEMPLATES_DIR, 'Free Icon.png')
 TEMPLATE_JUNK_OFFER = os.path.join(TEMPLATES_DIR, 'junkoffer.png')
 TEMPLATE_CLOSE_OFFER = os.path.join(TEMPLATES_DIR, 'closeoffer.png')
@@ -46,6 +47,10 @@ TEMPLATE_COLLECT = os.path.join(TEMPLATES_DIR, 'collect.png')
 TEMPLATE_PPP = os.path.join(TEMPLATES_DIR, 'PPP.png')
 TEMPLATE_PPP_RED_DOT = os.path.join(TEMPLATES_DIR, 'pppRedDot.png')
 TEMPLATE_FREE_DRAW = os.path.join(TEMPLATES_DIR, 'FreeDraw.png')
+
+# Playtime rewards templates
+TEMPLATE_ACCRUED_REWARDS = os.path.join(TEMPLATES_DIR, 'AccruedRewards.png')
+TEMPLATE_PLAYTIME_REWARD = os.path.join(TEMPLATES_DIR, 'playtimeReward.png')
 
 # Market templates
 TEMPLATE_FRESH_MARKET = os.path.join(TEMPLATES_DIR, 'freshMarket.png')
@@ -66,6 +71,11 @@ TEMPLATE_PVE_BATTLE = os.path.join(TEMPLATES_DIR, 'PVEBattle.png')
 # Iron Twins templates
 TEMPLATE_IRON_TWINS = os.path.join(TEMPLATES_DIR, 'ironTwins.png')
 TEMPLATE_IT_ICON = os.path.join(TEMPLATES_DIR, 'ITIcon.png')
+TEMPLATE_EMPTY_IT_KEYS = os.path.join(TEMPLATES_DIR, 'emptyITKeys.png')
+TEMPLATE_IT_NO_KEY = os.path.join(TEMPLATES_DIR, 'ITNoKey.png')
+TEMPLATE_IT_NO_KEY_STAGES = os.path.join(TEMPLATES_DIR, 'ITNoKeyStages.png')
+TEMPLATE_IT_REPLAY = os.path.join(TEMPLATES_DIR, 'ITReplay.png')
+TEMPLATE_BASTION = os.path.join(TEMPLATES_DIR, 'bastion.png')
 
 # Summon templates
 TEMPLATE_SUMMON_PORTAL = os.path.join(TEMPLATES_DIR, 'summonPortal.png')
@@ -129,6 +139,11 @@ ARENA_MAX_OPPONENT_POWER = 0
 # Player level threshold - skip opponents above this level (0 = no limit)
 ARENA_MAX_OPPONENT_LEVEL = 0
 
+# OR power threshold - always fight opponents at or below this power,
+# regardless of level. Catches easy wins from high-level players with
+# weak teams. (0 = disabled)
+ARENA_OR_POWER = 0
+
 # Sort order for attacking (True = weakest first)
 ARENA_ATTACK_WEAKEST_FIRST = True
 
@@ -175,7 +190,7 @@ IRON_TWINS_STAGE = 15
 # Timing
 IRON_TWINS_SCAN_DELAY = 1.0       # Delay between OCR scans for stage number
 IRON_TWINS_SCROLL_DELAY = 1.0     # Delay after scrolling
-IRON_TWINS_BATTLE_TIMEOUT = 300   # Max seconds to wait for battle to complete
+IRON_TWINS_BATTLE_TIMEOUT = 600   # Max seconds to wait for battle to complete (10 min)
 
 # Scrolling region for dungeon stage list
 IRON_TWINS_SCROLL_REGION = {

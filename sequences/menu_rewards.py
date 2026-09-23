@@ -70,12 +70,12 @@ class MenuRewardsSequence:
 
                 # Step 3: Look for Collect button (only after Daily Login)
                 self.clicker.natural_delay(1.0)
-                found, _, _ = self.template_matcher.find_template(
+                found, loc, _ = self.template_matcher.find_template(
                     TEMPLATE_COLLECT, threshold=0.8
                 )
                 if found:
-                    self.template_matcher.find_and_click(
-                        TEMPLATE_COLLECT, wait_after=1.5
+                    self.template_matcher.click_at_offset(
+                        loc[0], loc[1], offset_y=10, wait_after=1.5
                     )
                     self.log('  Clicked Collect')
                 else:
