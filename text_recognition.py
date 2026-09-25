@@ -98,7 +98,12 @@ class TextRecognizer:
         for method in methods:
             self._debug_log(f"Trying preprocessing method: {method}")
             processed = self.preprocess_for_ocr(image, method)
-            text = pytesseract.image_to_string(processed, config=config)
+            if not processed.flags['C_CONTIGUOUS']:
+                processed = np.ascontiguousarray(processed)
+            try:
+                text = pytesseract.image_to_string(processed, config=config)
+            except Exception:
+                continue
             if text.strip():
                 self._debug_log(f"SUCCESS with {method}: '{text.strip()[:100]}...'" if len(text.strip()) > 100 else f"SUCCESS with {method}: '{text.strip()}'")
                 return text.strip()
@@ -123,8 +128,13 @@ class TextRecognizer:
         
         processed = self.preprocess_for_ocr(image, 'default')
         scale_factor = 1  # No scaling in default preprocessing
-        
-        data = pytesseract.image_to_data(processed, config=config, output_type=pytesseract.Output.DICT)
+
+        if not processed.flags['C_CONTIGUOUS']:
+            processed = np.ascontiguousarray(processed)
+        try:
+            data = pytesseract.image_to_data(processed, config=config, output_type=pytesseract.Output.DICT)
+        except Exception:
+            return []
         
         results = []
         for i, text in enumerate(data['text']):
@@ -358,9 +368,14 @@ class TextRecognizer:
         # Pass 1: Find all text elements, looking for "Power" anchors
         self._debug_log("Targeted scan: locating 'Power' anchors...")
         processed = self.preprocess_for_ocr(image, 'default')
-        data = pytesseract.image_to_data(
-            processed, config='--psm 11', output_type=pytesseract.Output.DICT
-        )
+        if not processed.flags['C_CONTIGUOUS']:
+            processed = np.ascontiguousarray(processed)
+        try:
+            data = pytesseract.image_to_data(
+                processed, config='--psm 11', output_type=pytesseract.Output.DICT
+            )
+        except Exception:
+            return []
 
         # Collect "Power" anchor positions
         anchors = []
@@ -433,7 +448,9 @@ class TextRecognizer:
                 if crop_w < 20 or crop_h < 10:
                     continue
 
-                crop = image[crop_y:crop_y + crop_h, crop_x:crop_x + crop_w]
+                crop = np.ascontiguousarray(
+                    image[crop_y:crop_y + crop_h, crop_x:crop_x + crop_w]
+                )
 
                 # Isolate white text from colorful backgrounds.
                 # Power numbers are white/near-white text. Champion portrait
@@ -452,9 +469,14 @@ class TextRecognizer:
                     _, thresh_crop = cv2.threshold(crop, 180, 255, cv2.THRESH_BINARY)
                 thresh_crop = cv2.resize(thresh_crop, None, fx=2, fy=2, interpolation=cv2.INTER_NEAREST)
 
-                raw_text = pytesseract.image_to_string(
-                    thresh_crop, config=whitelist_config
-                ).strip()
+                if not thresh_crop.flags['C_CONTIGUOUS']:
+                    thresh_crop = np.ascontiguousarray(thresh_crop)
+                try:
+                    raw_text = pytesseract.image_to_string(
+                        thresh_crop, config=whitelist_config
+                    ).strip()
+                except Exception:
+                    continue
 
                 # Strip leading periods/commas — colon often reads as "."
                 raw_text = raw_text.lstrip('., ')
@@ -755,14 +777,21 @@ class TextRecognizer:
                     if band_strip.shape[0] < 5 or band_strip.shape[1] < 10:
                         continue
 
+                    # Force contiguous copy — cv2 can segfault on
+                    # non-contiguous numpy views from slicing
+                    band_strip = np.ascontiguousarray(band_strip)
+
                     padded = cv2.copyMakeBorder(band_strip, 10, 10, 5, 5,
                                                 cv2.BORDER_CONSTANT, value=0)
                     upscaled = cv2.resize(padded, None, fx=scale, fy=scale,
                                           interpolation=interp)
 
-                    raw_text = pytesseract.image_to_string(
-                        upscaled, config=whitelist_config
-                    ).strip().lstrip('., ')
+                    try:
+                        raw_text = pytesseract.image_to_string(
+                            upscaled, config=whitelist_config
+                        ).strip().lstrip('., ')
+                    except Exception:
+                        continue
 
                     if not raw_text or not re.match(r'\d', raw_text):
                         continue
@@ -1140,9 +1169,11 @@ class TextRecognizer:
                         crop_y = max(0, target_y - est_band_h // 2 - y_pad)
                         crop_h = min(est_band_h + 2 * y_pad, height - crop_y)
 
-                    band_strip = filt_img[crop_y:crop_y + crop_h,
-                                          x_crop_start + col_crop_left:
-                                          x_crop_start + col_crop_right]
+                    band_strip = np.ascontiguousarray(
+                        filt_img[crop_y:crop_y + crop_h,
+                                 x_crop_start + col_crop_left:
+                                 x_crop_start + col_crop_right]
+                    )
 
                     if band_strip.shape[0] < 4 or band_strip.shape[1] < 4:
                         continue
@@ -1169,9 +1200,14 @@ class TextRecognizer:
                     else:
                         ocr_img = padded
 
-                    raw_text = pytesseract.image_to_string(
-                        ocr_img, config=tess_config
-                    ).strip()
+                    if not ocr_img.flags['C_CONTIGUOUS']:
+                        ocr_img = np.ascontiguousarray(ocr_img)
+                    try:
+                        raw_text = pytesseract.image_to_string(
+                            ocr_img, config=tess_config
+                        ).strip()
+                    except Exception:
+                        continue
 
                     if not raw_text:
                         continue

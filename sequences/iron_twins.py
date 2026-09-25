@@ -28,7 +28,7 @@ from config import (
     TEMPLATE_BATTLE, TEMPLATE_DUNGEONS, TEMPLATE_IRON_TWINS,
     TEMPLATE_IT_ICON, TEMPLATE_PVE_BATTLE, TEMPLATE_BACK,
     TEMPLATE_IT_NO_KEY, TEMPLATE_IT_NO_KEY_STAGES,
-    TEMPLATE_IT_REPLAY, TEMPLATE_BASTION,
+    TEMPLATE_IT_REPLAY, TEMPLATE_BASTION, TEMPLATE_SUP_RAID_OFF,
     IRON_TWINS_SCROLL_REGION, IRON_TWINS_SCROLL_DELAY,
     IRON_TWINS_MAX_SCROLL_ATTEMPTS, IRON_TWINS_BATTLE_TIMEOUT,
     CLICK_DELAY, SCRIPT_DIR,
@@ -398,10 +398,8 @@ class IronTwinsSequence:
                 return 'timeout'
 
             # Check for no keys first (takes priority)
-            # High threshold needed — the key icon matches 0/6 and 2/6
-            # at ~0.95, only the digit differs (0/6 = 1.0, 2/6 = 0.945)
             found, _, _ = self.template_matcher.find_template(
-                TEMPLATE_IT_NO_KEY, threshold=0.96
+                TEMPLATE_IT_NO_KEY, threshold=0.8
             )
             if found:
                 elapsed = int(time.time() - start)
@@ -440,7 +438,7 @@ class IronTwinsSequence:
             True if keys are exhausted (0/6 template found), False otherwise.
         """
         found, _, _ = self.template_matcher.find_template(
-            TEMPLATE_IT_NO_KEY_STAGES, threshold=0.96
+            TEMPLATE_IT_NO_KEY_STAGES, threshold=0.97
         )
         return found
 
@@ -502,8 +500,22 @@ class IronTwinsSequence:
             if self.should_stop():
                 return False
 
-            # Step 4: Select the target stage
+            # Step 4: Check if keys are exhausted on the stage menu
             self.clicker.natural_delay(1.5)
+            self.log('  Checking keys...')
+            if self._check_keys_exhausted():
+                self.log('  No keys remaining (0/6) — navigating home')
+                # Back 3 times: stage menu → dungeons → battle → home
+                for i in range(3):
+                    self.template_matcher.find_and_click(
+                        TEMPLATE_BACK, threshold=0.8, wait_after=1.5
+                    )
+                return {'success': False, 'keys_exhausted': True}
+
+            if self.should_stop():
+                return False
+
+            # Step 5: Select the target stage
             if not self._select_stage(target_stage):
                 self.log('  Failed to select stage — aborting')
                 return False
@@ -513,16 +525,19 @@ class IronTwinsSequence:
             if self.should_stop():
                 return False
 
-            # Step 5: Check if keys are exhausted before first battle
+            # Step 5b: Enable Super Raid if it's off
             self.clicker.natural_delay(1.0)
-            if self._check_keys_exhausted():
-                self.log('  No keys remaining (0/6) — navigating home')
-                # Back 3 times: stage menu → dungeons → battle → home
-                for i in range(3):
-                    self.template_matcher.find_and_click(
-                        TEMPLATE_BACK, threshold=0.8, wait_after=1.5
-                    )
-                return {'success': False, 'keys_exhausted': True}
+            found, _, _ = self.template_matcher.find_template(
+                TEMPLATE_SUP_RAID_OFF, threshold=0.7
+            )
+            if found:
+                self.template_matcher.find_and_click(
+                    TEMPLATE_SUP_RAID_OFF, wait_after=1.5
+                )
+                self.log('  Clicked Super Raid Off — enabling Super Raid')
+
+            if self.should_stop():
+                return False
 
             # Step 6: Run gear-up macro (if configured)
             self._run_gear_macro()

@@ -8,7 +8,7 @@ import pyautogui
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from pynput import keyboard as pynput_keyboard
-from PyQt5.QtWidgets import (QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QTextEdit, QMessageBox, QGroupBox, QDoubleSpinBox, QSpinBox, QComboBox, QCheckBox, QInputDialog)
+from PyQt5.QtWidgets import (QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QTextEdit, QMessageBox, QGroupBox, QDoubleSpinBox, QSpinBox, QComboBox, QCheckBox, QInputDialog, QTabWidget, QGridLayout)
 from PyQt5.QtCore import Qt, QTimer
 
 from window_capture import WindowCapture
@@ -33,6 +33,7 @@ from sequences.check_market import CheckMarketSequence
 from sequences.quests import QuestsSequence
 from sequences.sum3 import Sum3Sequence
 from sequences.iron_twins import IronTwinsSequence
+from sequences.clan_boss import ClanBossSequence
 from sequences.playtime_rewards import PlaytimeRewardsSequence
 import config
 
@@ -42,8 +43,8 @@ class DreamerApp(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle('Dreamer - Window Scanner')
-        self.setGeometry(100, 100, 900, 700)
-        
+        self.setGeometry(100, 100, 1100, 850)
+
         # Initialize components
         self.window_capture = WindowCapture(GAME_WINDOW_TITLE)
         self.template_matcher = TemplateMatcher(self.window_capture)
@@ -61,6 +62,12 @@ class DreamerApp(QWidget):
         self.macro_recorder = None
         self.macro_player = None
         self.macro_play_thread = None
+
+        # Daily loop state
+        self.daily_loop_running = False
+        self.daily_loop_cycle = 0
+        self.daily_loop_task_index = 0
+        self.daily_wait_timer = None
 
         # UI Setup (must be before text_recognizer since it logs on init)
         self.setup_ui()
@@ -127,97 +134,184 @@ class DreamerApp(QWidget):
 
     def setup_ui(self):
         """Initialize UI components"""
-        self.image_label = QLabel('Click "Add Template" to capture a screen region')
-        self.image_label.setAlignment(Qt.AlignCenter)
 
-        self.add_template_btn = QPushButton('Add Template')
-        self.add_template_btn.clicked.connect(self.start_region_selection)
+        # ── Global stylesheet for larger, more readable UI ──
+        self.setStyleSheet("""
+            QWidget { font-size: 12pt; }
+            QPushButton {
+                min-height: 36px;
+                padding: 6px 14px;
+                font-size: 12pt;
+            }
+            QGroupBox {
+                font-size: 13pt;
+                font-weight: bold;
+                margin-top: 10px;
+                padding-top: 16px;
+            }
+            QGroupBox::title { subcontrol-position: top left; padding: 4px 8px; }
+            QTabWidget::pane { border: 1px solid #888; padding: 6px; }
+            QTabBar::tab {
+                font-size: 12pt;
+                padding: 8px 20px;
+                min-width: 100px;
+            }
+            QSpinBox, QDoubleSpinBox, QComboBox {
+                min-height: 32px;
+                font-size: 12pt;
+            }
+            QCheckBox { font-size: 12pt; }
+            QLabel { font-size: 12pt; }
+        """)
 
+        # ── Shared widgets ──
         self.stop_btn = QPushButton('STOP')
         self.stop_btn.clicked.connect(self.request_stop)
-        self.stop_btn.setStyleSheet('background-color: #ff4444; color: white; font-weight: bold;')
+        self.stop_btn.setStyleSheet(
+            'background-color: #ff4444; color: white; font-weight: bold; font-size: 14pt; min-height: 44px;')
         self.stop_btn.setEnabled(False)
 
         self.log_output = QTextEdit()
         self.log_output.setReadOnly(True)
+        self.log_output.setStyleSheet('font-family: Consolas, monospace; font-size: 11pt;')
 
-        # === Runs Section ===
-        runs_group = QGroupBox('Runs')
-        runs_layout = QHBoxLayout()
+        # ── Tab widget ──
+        tabs = QTabWidget()
 
-        self.run_classic_arena_btn = QPushButton('Classic Arena')
-        self.run_classic_arena_btn.clicked.connect(self.run_classic_arena)
-        runs_layout.addWidget(self.run_classic_arena_btn)
+        # ============================================================
+        # TAB 1: Sequences
+        # ============================================================
+        seq_tab = QWidget()
+        seq_layout = QVBoxLayout()
 
-        self.run_free_shop_btn = QPushButton('Get Free Shop Items')
-        self.run_free_shop_btn.clicked.connect(self.run_free_shop_items)
-        runs_layout.addWidget(self.run_free_shop_btn)
+        # --- Daily Loop section ---
+        daily_group = QGroupBox('Daily Loop')
+        daily_layout = QHBoxLayout()
 
-        self.run_guardian_btn = QPushButton('Guardian Ring')
-        self.run_guardian_btn.clicked.connect(self.run_guardian_ring)
-        runs_layout.addWidget(self.run_guardian_btn)
+        self.daily_loop_btn = QPushButton('Start Daily Loop')
+        self.daily_loop_btn.setStyleSheet(
+            'background-color: #4488cc; color: white; font-weight: bold; font-size: 13pt; min-height: 40px;')
+        self.daily_loop_btn.clicked.connect(self.start_daily_loop)
+        daily_layout.addWidget(self.daily_loop_btn)
 
-        self.run_bypass_junk_btn = QPushButton('Bypass Junk')
-        self.run_bypass_junk_btn.clicked.connect(self.run_bypass_junk)
-        runs_layout.addWidget(self.run_bypass_junk_btn)
+        self.daily_loop_hourly_cb = QCheckBox('Loop every hour')
+        self.daily_loop_hourly_cb.setToolTip('After completing all tasks, wait 60 minutes and run again')
+        daily_layout.addWidget(self.daily_loop_hourly_cb)
 
-        self.run_collect_gem_btn = QPushButton('Collect Gem')
-        self.run_collect_gem_btn.clicked.connect(self.run_collect_gem)
-        runs_layout.addWidget(self.run_collect_gem_btn)
+        self.daily_status_label = QLabel('Status: idle')
+        daily_layout.addWidget(self.daily_status_label)
 
-        self.run_menu_rewards_btn = QPushButton('Menu Rewards')
-        self.run_menu_rewards_btn.clicked.connect(self.run_menu_rewards)
-        runs_layout.addWidget(self.run_menu_rewards_btn)
+        daily_layout.addStretch()
+        daily_layout.addWidget(self.stop_btn)
+        daily_group.setLayout(daily_layout)
+        seq_layout.addWidget(daily_group)
 
-        self.run_check_market_btn = QPushButton('Check Market')
-        self.run_check_market_btn.clicked.connect(self.run_check_market)
-        runs_layout.addWidget(self.run_check_market_btn)
+        # --- Run buttons in a grid ---
+        runs_group = QGroupBox('Run Sequences')
+        runs_grid = QGridLayout()
+        runs_grid.setSpacing(8)
 
+        # Row 0: Daily / Quest related
         self.run_quests_btn = QPushButton('Quests')
         self.run_quests_btn.clicked.connect(self.run_quests)
-        runs_layout.addWidget(self.run_quests_btn)
+        runs_grid.addWidget(self.run_quests_btn, 0, 0)
 
         self.run_sum3_btn = QPushButton('Sum3')
         self.run_sum3_btn.clicked.connect(self.run_sum3)
-        runs_layout.addWidget(self.run_sum3_btn)
+        runs_grid.addWidget(self.run_sum3_btn, 0, 1)
 
+        self.run_collect_gem_btn = QPushButton('Collect Gem')
+        self.run_collect_gem_btn.clicked.connect(self.run_collect_gem)
+        runs_grid.addWidget(self.run_collect_gem_btn, 0, 2)
+
+        self.run_menu_rewards_btn = QPushButton('Menu Rewards')
+        self.run_menu_rewards_btn.clicked.connect(self.run_menu_rewards)
+        runs_grid.addWidget(self.run_menu_rewards_btn, 0, 3)
+
+        # Row 1: Rewards / Shop
         self.run_playtime_btn = QPushButton('Playtime Rewards')
         self.run_playtime_btn.clicked.connect(self.run_playtime_rewards)
-        runs_layout.addWidget(self.run_playtime_btn)
+        runs_grid.addWidget(self.run_playtime_btn, 1, 0)
 
-        # Iron Twins: stage selector + gear-up macro + run button
-        runs_layout.addWidget(QLabel('IT Stage:'))
+        self.run_free_shop_btn = QPushButton('Free Shop Items')
+        self.run_free_shop_btn.clicked.connect(self.run_free_shop_items)
+        runs_grid.addWidget(self.run_free_shop_btn, 1, 1)
+
+        self.run_check_market_btn = QPushButton('Check Market')
+        self.run_check_market_btn.clicked.connect(self.run_check_market)
+        runs_grid.addWidget(self.run_check_market_btn, 1, 2)
+
+        self.run_guardian_btn = QPushButton('Guardian Ring')
+        self.run_guardian_btn.clicked.connect(self.run_guardian_ring)
+        runs_grid.addWidget(self.run_guardian_btn, 1, 3)
+
+        # Row 2: Combat
+        self.run_classic_arena_btn = QPushButton('Classic Arena')
+        self.run_classic_arena_btn.clicked.connect(self.run_classic_arena)
+        runs_grid.addWidget(self.run_classic_arena_btn, 2, 0)
+
+        self.run_bypass_junk_btn = QPushButton('Bypass Junk')
+        self.run_bypass_junk_btn.clicked.connect(self.run_bypass_junk)
+        runs_grid.addWidget(self.run_bypass_junk_btn, 2, 1)
+
+        # Row 3: Iron Twins (button + stage + macro)
+        self.run_iron_twins_btn = QPushButton('Iron Twins')
+        self.run_iron_twins_btn.clicked.connect(self.run_iron_twins)
+        runs_grid.addWidget(self.run_iron_twins_btn, 3, 0)
+
+        it_config = QHBoxLayout()
+        it_config.addWidget(QLabel('Stage:'))
         self.it_stage_spin = QSpinBox()
         self.it_stage_spin.setRange(1, 15)
         self.it_stage_spin.setValue(config.IRON_TWINS_STAGE)
         self.it_stage_spin.setToolTip('Iron Twins stage (1-15)')
         self.it_stage_spin.valueChanged.connect(self._on_it_stage_changed)
-        runs_layout.addWidget(self.it_stage_spin)
-
-        runs_layout.addWidget(QLabel('Gear Macro:'))
+        it_config.addWidget(self.it_stage_spin)
+        it_config.addWidget(QLabel('Gear Macro:'))
         self.it_macro_combo = QComboBox()
-        self.it_macro_combo.setMinimumWidth(120)
+        self.it_macro_combo.setMinimumWidth(140)
         self.it_macro_combo.setToolTip('Macro to run after stage selection (gear swap)')
         self.it_macro_combo.addItem('(None)')
         self.it_macro_combo.addItems(MacroRecorder.list_macros())
         self.it_macro_combo.currentTextChanged.connect(self._on_it_macro_changed)
-        runs_layout.addWidget(self.it_macro_combo)
+        it_config.addWidget(self.it_macro_combo)
+        it_config.addStretch()
+        runs_grid.addLayout(it_config, 3, 1, 1, 3)
 
-        self.run_iron_twins_btn = QPushButton('Iron Twins')
-        self.run_iron_twins_btn.clicked.connect(self.run_iron_twins)
-        runs_layout.addWidget(self.run_iron_twins_btn)
+        # Row 4: Clan Boss (button + difficulty)
+        self.run_cb_main_btn = QPushButton('Clan Boss')
+        self.run_cb_main_btn.clicked.connect(self.run_cb_main)
+        runs_grid.addWidget(self.run_cb_main_btn, 4, 0)
 
-        runs_layout.addWidget(self.stop_btn)
-        runs_layout.addStretch()
-        runs_group.setLayout(runs_layout)
+        cb_config = QHBoxLayout()
+        cb_config.addWidget(QLabel('Difficulty:'))
+        self.cb_difficulty_combo = QComboBox()
+        self.cb_difficulty_combo.addItems(config.CB_DIFFICULTIES)
+        self.cb_difficulty_combo.setCurrentText(config.CB_DIFFICULTY)
+        self.cb_difficulty_combo.setToolTip('Clan Boss difficulty')
+        self.cb_difficulty_combo.currentTextChanged.connect(self._on_cb_difficulty_changed)
+        cb_config.addWidget(self.cb_difficulty_combo)
+        cb_config.addStretch()
+        runs_grid.addLayout(cb_config, 4, 1, 1, 3)
 
-        # === Arena Config UI ===
-        arena_config_group = QGroupBox('Arena Config')
-        arena_config_layout = QVBoxLayout()
+        runs_group.setLayout(runs_grid)
+        seq_layout.addWidget(runs_group)
+        seq_layout.addStretch()
 
-        config_row = QHBoxLayout()
+        seq_tab.setLayout(seq_layout)
+        tabs.addTab(seq_tab, 'Sequences')
 
-        config_row.addWidget(QLabel('Max Power:'))
+        # ============================================================
+        # TAB 2: Arena Config
+        # ============================================================
+        arena_tab = QWidget()
+        arena_layout = QVBoxLayout()
+
+        arena_config_group = QGroupBox('Arena Opponent Filters')
+        arena_grid = QGridLayout()
+        arena_grid.setSpacing(10)
+
+        arena_grid.addWidget(QLabel('Max Power:'), 0, 0)
         self.arena_max_power_spin = QSpinBox()
         self.arena_max_power_spin.setRange(0, 999000)
         self.arena_max_power_spin.setSingleStep(10000)
@@ -225,9 +319,9 @@ class DreamerApp(QWidget):
         self.arena_max_power_spin.setSpecialValueText('No limit')
         self.arena_max_power_spin.setToolTip('Skip opponents above this power (0 = no limit)')
         self.arena_max_power_spin.valueChanged.connect(self._on_arena_max_power_changed)
-        config_row.addWidget(self.arena_max_power_spin)
+        arena_grid.addWidget(self.arena_max_power_spin, 0, 1)
 
-        config_row.addWidget(QLabel('Max Level:'))
+        arena_grid.addWidget(QLabel('Max Level:'), 1, 0)
         self.arena_max_level_spin = QSpinBox()
         self.arena_max_level_spin.setRange(0, 100)
         self.arena_max_level_spin.setSingleStep(1)
@@ -235,9 +329,9 @@ class DreamerApp(QWidget):
         self.arena_max_level_spin.setSpecialValueText('No limit')
         self.arena_max_level_spin.setToolTip('Skip opponents above this level (0 = no limit)')
         self.arena_max_level_spin.valueChanged.connect(self._on_arena_max_level_changed)
-        config_row.addWidget(self.arena_max_level_spin)
+        arena_grid.addWidget(self.arena_max_level_spin, 1, 1)
 
-        config_row.addWidget(QLabel('OR Power ≤:'))
+        arena_grid.addWidget(QLabel('OR Power \u2264:'), 2, 0)
         self.arena_or_power_spin = QSpinBox()
         self.arena_or_power_spin.setRange(0, 999000)
         self.arena_or_power_spin.setSingleStep(10000)
@@ -246,17 +340,25 @@ class DreamerApp(QWidget):
         self.arena_or_power_spin.setToolTip(
             'Always fight opponents at or below this power, regardless of level (0 = off)')
         self.arena_or_power_spin.valueChanged.connect(self._on_arena_or_power_changed)
-        config_row.addWidget(self.arena_or_power_spin)
+        arena_grid.addWidget(self.arena_or_power_spin, 2, 1)
 
-        config_row.addStretch()
-        arena_config_layout.addLayout(config_row)
-        arena_config_group.setLayout(arena_config_layout)
+        arena_config_group.setLayout(arena_grid)
+        arena_layout.addWidget(arena_config_group)
+        arena_layout.addStretch()
 
-        # === Auto-Clicker UI ===
+        arena_tab.setLayout(arena_layout)
+        tabs.addTab(arena_tab, 'Arena Config')
+
+        # ============================================================
+        # TAB 3: Tools
+        # ============================================================
+        tools_tab = QWidget()
+        tools_layout = QVBoxLayout()
+
+        # --- Auto Clicker ---
         auto_click_group = QGroupBox('Auto Clicker')
         auto_click_layout = QVBoxLayout()
 
-        # Row 1: min/max interval controls
         interval_layout = QHBoxLayout()
         interval_layout.addWidget(QLabel('Min (s):'))
         self.ac_min_spin = QDoubleSpinBox()
@@ -265,7 +367,6 @@ class DreamerApp(QWidget):
         self.ac_min_spin.setSingleStep(0.1)
         self.ac_min_spin.setDecimals(1)
         interval_layout.addWidget(self.ac_min_spin)
-
         interval_layout.addWidget(QLabel('Max (s):'))
         self.ac_max_spin = QDoubleSpinBox()
         self.ac_max_spin.setRange(0.5, 10.0)
@@ -273,102 +374,116 @@ class DreamerApp(QWidget):
         self.ac_max_spin.setSingleStep(0.1)
         self.ac_max_spin.setDecimals(1)
         interval_layout.addWidget(self.ac_max_spin)
+        interval_layout.addStretch()
         auto_click_layout.addLayout(interval_layout)
 
-        # Row 2: Set position + status label
         pos_layout = QHBoxLayout()
         self.ac_set_pos_btn = QPushButton('Set Click Position (3s delay)')
         self.ac_set_pos_btn.clicked.connect(self.ac_set_position)
         pos_layout.addWidget(self.ac_set_pos_btn)
-
         self.ac_pos_label = QLabel('Position: not set')
         pos_layout.addWidget(self.ac_pos_label)
+        pos_layout.addStretch()
         auto_click_layout.addLayout(pos_layout)
 
-        # Row 3: Start / Stop / next interval preview
         ctrl_layout = QHBoxLayout()
         self.ac_start_btn = QPushButton('Start Auto Click')
-        self.ac_start_btn.setStyleSheet('background-color: #44aa44; color: white; font-weight: bold;')
+        self.ac_start_btn.setStyleSheet(
+            'background-color: #44aa44; color: white; font-weight: bold;')
         self.ac_start_btn.clicked.connect(self.ac_start)
         self.ac_start_btn.setEnabled(False)
         ctrl_layout.addWidget(self.ac_start_btn)
-
         self.ac_stop_btn = QPushButton('Stop Auto Click')
-        self.ac_stop_btn.setStyleSheet('background-color: #ff4444; color: white; font-weight: bold;')
+        self.ac_stop_btn.setStyleSheet(
+            'background-color: #ff4444; color: white; font-weight: bold;')
         self.ac_stop_btn.clicked.connect(self.ac_stop)
         self.ac_stop_btn.setEnabled(False)
         ctrl_layout.addWidget(self.ac_stop_btn)
-
         self.ac_status_label = QLabel('Status: idle')
         ctrl_layout.addWidget(self.ac_status_label)
+        ctrl_layout.addStretch()
         auto_click_layout.addLayout(ctrl_layout)
 
         auto_click_group.setLayout(auto_click_layout)
+        tools_layout.addWidget(auto_click_group)
 
-        # === Macro Recorder UI ===
+        # --- Macro Recorder ---
         macro_group = QGroupBox('Macro Recorder')
         macro_layout = QVBoxLayout()
 
-        # Row 1: Record, Stop Recording, status
         macro_row1 = QHBoxLayout()
         self.macro_record_btn = QPushButton('Record')
-        self.macro_record_btn.setStyleSheet('background-color: #cc4444; color: white; font-weight: bold;')
+        self.macro_record_btn.setStyleSheet(
+            'background-color: #cc4444; color: white; font-weight: bold;')
         self.macro_record_btn.clicked.connect(self.macro_start_recording)
         macro_row1.addWidget(self.macro_record_btn)
-
         self.macro_stop_record_btn = QPushButton('Stop Recording')
         self.macro_stop_record_btn.clicked.connect(self.macro_stop_recording)
         self.macro_stop_record_btn.setEnabled(False)
         macro_row1.addWidget(self.macro_stop_record_btn)
-
         self.macro_status_label = QLabel('Status: idle')
         macro_row1.addWidget(self.macro_status_label)
+        macro_row1.addStretch()
         macro_layout.addLayout(macro_row1)
 
-        # Row 2: Macro dropdown, Play, Stop Playback, Loop checkbox, Delete
         macro_row2 = QHBoxLayout()
         self.macro_combo = QComboBox()
         self.macro_combo.setMinimumWidth(200)
         macro_row2.addWidget(self.macro_combo)
-
         self.macro_play_btn = QPushButton('Play')
-        self.macro_play_btn.setStyleSheet('background-color: #44aa44; color: white; font-weight: bold;')
+        self.macro_play_btn.setStyleSheet(
+            'background-color: #44aa44; color: white; font-weight: bold;')
         self.macro_play_btn.clicked.connect(self.macro_play)
         self.macro_play_btn.setEnabled(False)
         macro_row2.addWidget(self.macro_play_btn)
-
         self.macro_stop_play_btn = QPushButton('Stop Playback')
-        self.macro_stop_play_btn.setStyleSheet('background-color: #ff4444; color: white; font-weight: bold;')
+        self.macro_stop_play_btn.setStyleSheet(
+            'background-color: #ff4444; color: white; font-weight: bold;')
         self.macro_stop_play_btn.clicked.connect(self.macro_stop_playback)
         self.macro_stop_play_btn.setEnabled(False)
         macro_row2.addWidget(self.macro_stop_play_btn)
-
         self.macro_loop_cb = QCheckBox('Loop')
         macro_row2.addWidget(self.macro_loop_cb)
-
         self.macro_delete_btn = QPushButton('Delete')
         self.macro_delete_btn.clicked.connect(self.macro_delete)
         self.macro_delete_btn.setEnabled(False)
         macro_row2.addWidget(self.macro_delete_btn)
-
+        macro_row2.addStretch()
         macro_layout.addLayout(macro_row2)
+
         macro_group.setLayout(macro_layout)
+        tools_layout.addWidget(macro_group)
+
+        # --- Template capture ---
+        template_group = QGroupBox('Template Capture')
+        template_layout = QVBoxLayout()
+
+        self.add_template_btn = QPushButton('Add Template')
+        self.add_template_btn.clicked.connect(self.start_region_selection)
+        template_layout.addWidget(self.add_template_btn)
+
+        self.image_label = QLabel('Click "Add Template" to capture a screen region')
+        self.image_label.setAlignment(Qt.AlignCenter)
+        template_layout.addWidget(self.image_label)
+
+        template_group.setLayout(template_layout)
+        tools_layout.addWidget(template_group)
+
+        tools_layout.addStretch()
+        tools_tab.setLayout(tools_layout)
+        tabs.addTab(tools_tab, 'Tools')
 
         self._refresh_macro_list()
 
-        tools_layout = QHBoxLayout()
-        tools_layout.addWidget(self.add_template_btn)
-        tools_layout.addStretch()
-
+        # ============================================================
+        # Main layout: tabs on top, log always visible below
+        # ============================================================
         layout = QVBoxLayout()
-        layout.addWidget(self.image_label)
-        layout.addWidget(runs_group)
-        layout.addWidget(arena_config_group)
-        layout.addLayout(tools_layout)
-        layout.addWidget(auto_click_group)
-        layout.addWidget(macro_group)
-        layout.addWidget(QLabel('Log:'))
-        layout.addWidget(self.log_output)
+        layout.addWidget(tabs, stretch=1)
+        log_label = QLabel('Log:')
+        log_label.setStyleSheet('font-weight: bold; font-size: 12pt;')
+        layout.addWidget(log_label)
+        layout.addWidget(self.log_output, stretch=1)
         self.setLayout(layout)
     
     def log(self, message):
@@ -416,6 +531,10 @@ class DreamerApp(QWidget):
             idx = self.it_macro_combo.findText(macro_name)
             if idx >= 0:
                 self.it_macro_combo.setCurrentIndex(idx)
+        if 'cb_difficulty' in settings:
+            val = settings['cb_difficulty']
+            if val in config.CB_DIFFICULTIES:
+                self.cb_difficulty_combo.setCurrentText(val)
 
         # Daily state
         if 'daily_state' in settings:
@@ -442,6 +561,7 @@ class DreamerApp(QWidget):
             'arena_or_power': config.ARENA_OR_POWER,
             'iron_twins_stage': config.IRON_TWINS_STAGE,
             'iron_twins_macro': self.it_macro_combo.currentText(),
+            'cb_difficulty': config.CB_DIFFICULTY,
             'daily_state': ds_serialized,
         }
         try:
@@ -479,8 +599,9 @@ class DreamerApp(QWidget):
             self.daily_state['last_reset'] = now
             self.daily_state['it_keys_exhausted'] = False
             # Future flags reset here too
-            self.log('Daily reset (7 PM EST) — all tasks refreshed')
             self._save_settings()
+            return True  # reset occurred
+        return False  # no reset needed
 
     def _it_keys_available(self):
         """Check if Iron Twins keys are available (not exhausted this cycle)."""
@@ -489,7 +610,6 @@ class DreamerApp(QWidget):
     def _mark_it_keys_exhausted(self):
         """Mark Iron Twins keys as exhausted for this daily cycle."""
         self.daily_state['it_keys_exhausted'] = True
-        self.log('Iron Twins: keys exhausted (resets at 7 PM EST)')
         self._save_settings()
 
     # ── Arena config handlers ─────────────────────────────────────
@@ -530,6 +650,12 @@ class DreamerApp(QWidget):
     def _on_it_macro_changed(self, text):
         """Update the selected gear-up macro for Iron Twins."""
         self.log(f'Iron Twins: gear macro = {text}')
+        self._save_settings()
+
+    def _on_cb_difficulty_changed(self, text):
+        """Update the config module's CB_DIFFICULTY at runtime."""
+        config.CB_DIFFICULTY = text
+        self.log(f'Clan Boss: difficulty = {text}')
         self._save_settings()
 
     def start_region_selection(self):
@@ -869,6 +995,398 @@ class DreamerApp(QWidget):
             self.stop_requested = False
             self.run_iron_twins_btn.setEnabled(True)
 
+    def run_cb_main(self):
+        """Navigate to Clan Boss and select the configured difficulty."""
+        try:
+            self.stop_requested = False
+            self.stop_btn.setEnabled(True)
+            self.run_cb_main_btn.setEnabled(False)
+
+            seq = ClanBossSequence(
+                self.window_capture, self.template_matcher,
+                self.log, stop_check=self.is_stop_requested,
+            )
+            seq.run()
+
+        except Exception as e:
+            import traceback
+            self.log(f'Error: {e}')
+            self.log(traceback.format_exc())
+        finally:
+            self.stop_btn.setEnabled(False)
+            self.stop_requested = False
+            self.run_cb_main_btn.setEnabled(True)
+
+    # ─── Daily Loop ─────────────────────────────────────────────────────
+
+    # ── Daily task list (order matters — all start from home screen) ──
+
+    DAILY_TASKS = [
+        'Dismiss Junk Offers',
+        'Collect Gem',
+        'Free Shop Items',
+        'Menu Rewards',
+        'Playtime Rewards',
+        'Guardian Ring',
+        'Check Market',
+        'CB Main',
+        'Iron Twins',
+        'Classic Arena',
+        'Quests',
+    ]
+
+    def start_daily_loop(self):
+        """Start or stop the daily loop."""
+        if self.daily_loop_running:
+            # Stop it
+            self.daily_loop_running = False
+            self.stop_requested = True
+            self.daily_loop_btn.setText('Start Daily Loop')
+            self.daily_loop_btn.setStyleSheet('background-color: #4488cc; color: white; font-weight: bold;')
+            self.daily_status_label.setText('Status: stopping...')
+            self.log('')
+            self.log('Daily Loop: stop requested — will finish current task first')
+            if self.daily_wait_timer:
+                self.daily_wait_timer.stop()
+                self.daily_wait_timer = None
+            return
+
+        # Start it
+        self.daily_loop_running = True
+        self.stop_requested = False
+        self.daily_loop_cycle = 0
+        self.daily_loop_task_index = 0
+        self.daily_loop_btn.setText('Stop Daily Loop')
+        self.daily_loop_btn.setStyleSheet('background-color: #ff4444; color: white; font-weight: bold;')
+        self.daily_status_label.setText('Status: running')
+        self.stop_btn.setEnabled(True)
+
+        self.log('')
+        self.log('Daily Loop started')
+
+        # Kick off first cycle (runs on main thread via QTimer)
+        QTimer.singleShot(0, self._daily_start_cycle)
+
+    def _daily_log(self, msg):
+        """Log for the daily loop (runs on main thread, so direct call is fine)."""
+        self.log(msg)
+
+    def _daily_start_cycle(self):
+        """Begin a new daily cycle."""
+        if not self.daily_loop_running:
+            self._daily_loop_finished()
+            return
+
+        self.daily_loop_cycle += 1
+        self.daily_loop_task_index = 0
+
+        self.log('')
+        self.log('=' * 60)
+        self.log(f'  DAILY LOOP — Cycle {self.daily_loop_cycle}')
+        self.log('=' * 60)
+        self.daily_status_label.setText(f'Status: cycle {self.daily_loop_cycle}')
+
+        # Check daily reset
+        if self._check_daily_reset():
+            self.log('  Daily reset (7 PM EST) — all tasks refreshed')
+
+        # Start first task
+        QTimer.singleShot(500, self._daily_run_next_task)
+
+    def _daily_run_next_task(self):
+        """Run the next task in the daily loop (on main thread)."""
+        if not self.daily_loop_running:
+            self._daily_loop_finished()
+            return
+
+        tasks = self.DAILY_TASKS
+        idx = self.daily_loop_task_index
+
+        if idx >= len(tasks):
+            # All tasks done — run a re-check pass
+            self._daily_recheck_pass()
+            return
+
+        task_name = tasks[idx]
+        self.log(f'')
+        self.log(f'  >> {task_name}')
+        self.daily_status_label.setText(f'Status: {task_name}')
+        QApplication.processEvents()
+
+        # Dismiss junk offers BEFORE the task (clears any popup blockers)
+        if task_name != 'Dismiss Junk Offers':
+            self._daily_dismiss_junk()
+
+        # Run the task (blocking on main thread — same as individual Run buttons)
+        try:
+            task_func = self._daily_get_task_func(task_name)
+            task_func()
+        except Exception as e:
+            import traceback
+            self.log(f'  [{task_name}] ERROR: {e}')
+            for line in traceback.format_exc().split('\n'):
+                self.log(f'    {line}')
+
+        self.log(f'  << {task_name} done')
+
+        if not self.daily_loop_running:
+            self._daily_loop_finished()
+            return
+
+        # Move to next task
+        self.daily_loop_task_index += 1
+
+        # Schedule next task with a brief pause (keeps UI responsive)
+        QTimer.singleShot(1000, self._daily_run_next_task)
+
+    def _daily_get_task_func(self, task_name):
+        """Map task name to its function."""
+        mapping = {
+            'Dismiss Junk Offers': self._daily_dismiss_junk,
+            'Collect Gem': self._daily_collect_gem,
+            'Free Shop Items': self._daily_free_shop,
+            'Menu Rewards': self._daily_menu_rewards,
+            'Playtime Rewards': self._daily_playtime_rewards,
+            'Guardian Ring': self._daily_guardian_ring,
+            'Check Market': self._daily_check_market,
+            'CB Main': self._daily_cb_main,
+            'Iron Twins': self._daily_iron_twins,
+            'Classic Arena': self._daily_classic_arena,
+            'Quests': self._daily_quests,
+        }
+        return mapping[task_name]
+
+    # Tasks that can become available again during the cycle (e.g. playtime
+    # reward unlocks after time passes, new gem appears, etc.). These are
+    # re-run once at the end of the cycle to catch anything that unlocked
+    # while later tasks were running.
+    RECHECK_TASKS = [
+        'Dismiss Junk Offers',
+        'Collect Gem',
+        'Free Shop Items',
+        'Menu Rewards',
+        'Playtime Rewards',
+    ]
+
+    def _daily_recheck_pass(self):
+        """
+        Re-run high-priority collection tasks that may have become
+        available while later tasks (arena, dungeons, etc.) were running.
+        """
+        if not self.daily_loop_running:
+            self._daily_loop_finished()
+            return
+
+        self.log('')
+        self.log('  --- Re-check pass (catching newly available items) ---')
+        self.daily_status_label.setText('Status: re-check pass')
+        QApplication.processEvents()
+
+        for task_name in self.RECHECK_TASKS:
+            if not self.daily_loop_running or self.is_stop_requested():
+                break
+
+            # Dismiss junk before each re-check
+            if task_name != 'Dismiss Junk Offers':
+                self._daily_dismiss_junk()
+
+            self.log(f'  >> {task_name} (re-check)')
+            try:
+                task_func = self._daily_get_task_func(task_name)
+                task_func()
+            except Exception as e:
+                import traceback
+                self.log(f'  [{task_name}] re-check ERROR: {e}')
+                for line in traceback.format_exc().split('\n'):
+                    self.log(f'    {line}')
+            self.log(f'  << {task_name} re-check done')
+
+        self.log('  --- Re-check pass complete ---')
+
+        # Now proceed to end-of-cycle handling
+        self._daily_cycle_complete()
+
+    def _daily_cycle_complete(self):
+        """Handle end of a daily cycle."""
+        if not self.daily_loop_running:
+            self._daily_loop_finished()
+            return
+
+        cycle = self.daily_loop_cycle
+
+        if not self.daily_loop_hourly_cb.isChecked():
+            self.log('')
+            self.log(f'  Cycle {cycle} complete — "Loop every hour" is off, stopping')
+            self._daily_loop_finished()
+            return
+
+        # Wait 60 minutes before next cycle
+        self.log('')
+        self.log(f'  Cycle {cycle} complete — waiting 60 min before next cycle')
+        self.daily_status_label.setText('Status: waiting (60min)')
+
+        # Use QTimer for the wait (non-blocking, main thread)
+        self._daily_wait_elapsed = 0
+        self.daily_wait_timer = QTimer()
+        self.daily_wait_timer.setInterval(1000)  # tick every second
+        self.daily_wait_timer.timeout.connect(self._daily_wait_tick)
+        self.daily_wait_timer.start()
+
+    def _daily_wait_tick(self):
+        """Called every second during the 60-minute wait."""
+        if not self.daily_loop_running:
+            if self.daily_wait_timer:
+                self.daily_wait_timer.stop()
+                self.daily_wait_timer = None
+            self._daily_loop_finished()
+            return
+
+        self._daily_wait_elapsed += 1
+
+        # Log every 10 minutes
+        if self._daily_wait_elapsed % 600 == 0:
+            remaining = 60 - self._daily_wait_elapsed // 60
+            self.log(f'  {remaining} min remaining...')
+
+        # After 60 minutes, start next cycle
+        if self._daily_wait_elapsed >= 60 * 60:
+            self.daily_wait_timer.stop()
+            self.daily_wait_timer = None
+            self._daily_start_cycle()
+
+    def _daily_loop_finished(self):
+        """UI cleanup when daily loop stops."""
+        cycle = self.daily_loop_cycle
+        self.log('')
+        self.log(f'  Daily Loop stopped after {cycle} cycle(s)')
+        self.daily_loop_running = False
+        self.stop_requested = False
+        self.daily_loop_btn.setText('Start Daily Loop')
+        self.daily_loop_btn.setStyleSheet('background-color: #4488cc; color: white; font-weight: bold;')
+        self.daily_status_label.setText('Status: idle')
+        self.stop_btn.setEnabled(False)
+
+    # ── Daily task wrappers (run on main thread) ──────────────
+
+    def _daily_dismiss_junk(self):
+        seq = DismissJunkOffersSequence(
+            self.window_capture, self.template_matcher,
+            self._daily_log, stop_check=self.is_stop_requested
+        )
+        seq.run()
+
+    def _daily_collect_gem(self):
+        seq = CollectGemSequence(
+            self.window_capture, self.template_matcher,
+            self._daily_log, stop_check=self.is_stop_requested
+        )
+        seq.run()
+
+    def _daily_free_shop(self):
+        seq = FreeShopItemsSequence(
+            self.window_capture, self.template_matcher,
+            self._daily_log, stop_check=self.is_stop_requested,
+            dry_run=False
+        )
+        seq.run()
+
+    def _daily_menu_rewards(self):
+        seq = MenuRewardsSequence(
+            self.window_capture, self.template_matcher,
+            self._daily_log, stop_check=self.is_stop_requested
+        )
+        seq.run()
+
+    def _daily_playtime_rewards(self):
+        seq = PlaytimeRewardsSequence(
+            self.window_capture, self.template_matcher,
+            self._daily_log, stop_check=self.is_stop_requested
+        )
+        seq.run()
+
+    def _daily_guardian_ring(self):
+        seq = GuardianRingSequence(
+            self.window_capture, self.template_matcher,
+            self._daily_log, stop_check=self.is_stop_requested
+        )
+        seq.run()
+
+    def _daily_check_market(self):
+        seq = CheckMarketSequence(
+            self.window_capture, self.template_matcher,
+            self._daily_log, stop_check=self.is_stop_requested
+        )
+        seq.run()
+
+    def _daily_cb_main(self):
+        seq = ClanBossSequence(
+            self.window_capture, self.template_matcher,
+            self._daily_log, stop_check=self.is_stop_requested,
+        )
+        seq.run()
+
+    def _daily_iron_twins(self):
+        # Check key availability (daily reset already checked at cycle start)
+        if not self._it_keys_available():
+            self._daily_log('  Iron Twins: skipped (no keys)')
+            return
+
+        macro_name = self.it_macro_combo.currentText()
+        if macro_name == '(None)':
+            macro_name = None
+
+        seq = IronTwinsSequence(
+            self.window_capture, self.template_matcher,
+            self._daily_log, stop_check=self.is_stop_requested,
+            gear_macro=macro_name,
+        )
+        result = seq.run()
+
+        if result and isinstance(result, dict) and result.get('keys_exhausted'):
+            self._mark_it_keys_exhausted()
+            self._daily_log('  Iron Twins: keys exhausted (resets at 7 PM EST)')
+
+    def _daily_quests(self):
+        seq = QuestsSequence(
+            self.window_capture, self.template_matcher,
+            self._daily_log, stop_check=self.is_stop_requested
+        )
+        seq.run()
+
+    def _daily_classic_arena(self):
+        """Navigate to Classic Arena and run the battle sequence."""
+        self._daily_log('')
+        self._daily_log('  Navigating to Classic Arena...')
+
+        steps = [
+            ("Battle", TEMPLATE_BATTLE),
+            ("Arena", TEMPLATE_ARENA),
+            ("Classic Arena", TEMPLATE_CLASSIC_ARENA),
+        ]
+
+        for step_name, template_path in steps:
+            if self.is_stop_requested():
+                return
+
+            self._daily_log(f'  Looking for "{step_name}"...')
+            success, message = self.template_matcher.find_and_click(
+                template_path, wait_after=CLICK_DELAY
+            )
+            if success:
+                self._daily_log(f'  Clicked "{step_name}"')
+            else:
+                self._daily_log(f'  Failed to find "{step_name}" — skipping arena')
+                return
+
+        self._daily_log('  Reached Classic Arena')
+
+        v2 = ClassicArenaSequenceV2(
+            self.window_capture, self.template_matcher,
+            self.text_recognizer, self._daily_log,
+            stop_check=self.is_stop_requested
+        )
+        v2.run()
+
     # ─── Auto Clicker Methods ───────────────────────────────────────────
 
     def ac_set_position(self):
@@ -1099,6 +1617,25 @@ class DreamerApp(QWidget):
 
 
 def main():
+    # Global exception hook — prevents silent crashes
+    def exception_hook(exc_type, exc_value, exc_tb):
+        import traceback
+        lines = traceback.format_exception(exc_type, exc_value, exc_tb)
+        msg = ''.join(lines)
+        print(f'UNHANDLED EXCEPTION:\n{msg}', flush=True)
+        # Also write to log file so it survives a crash
+        try:
+            from utils import _get_file_logger
+            logger = _get_file_logger()
+            logger.error(f'UNHANDLED EXCEPTION:\n{msg}')
+            for handler in logger.handlers:
+                handler.flush()
+        except Exception:
+            pass
+        sys.__excepthook__(exc_type, exc_value, exc_tb)
+
+    sys.excepthook = exception_hook
+
     app = QApplication(sys.argv)
     window = DreamerApp()
     window.show()

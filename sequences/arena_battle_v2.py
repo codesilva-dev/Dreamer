@@ -70,7 +70,7 @@ class ArenaBattleRunner:
             self.clicker.natural_delay(ARENA_SCAN_DELAY)
             frame = self.window_capture.capture()
             roi_x, roi_y, roi_w, roi_h = self.scanner.get_fluid_ocr_region(frame)
-            roi_frame = frame[roi_y:roi_y + roi_h, roi_x:roi_x + roi_w]
+            roi_frame = frame[roi_y:roi_y + roi_h, roi_x:roi_x + roi_w].copy()
 
             powers = self.text_recognizer.find_team_powers_hsv(roi_frame)
             all_seen.update(p['power'] for p in powers)

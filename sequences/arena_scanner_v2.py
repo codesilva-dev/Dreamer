@@ -174,7 +174,7 @@ class ArenaListScanner:
         x1 = int(width * self._SNAPSHOT_X_START)
         x2 = int(width * self._SNAPSHOT_X_END)
 
-        current = frame[y1:y2, x1:x2]
+        current = frame[y1:y2, x1:x2].copy()
 
         result = cv2.matchTemplate(current, self._opponent_snapshot,
                                    cv2.TM_CCOEFF_NORMED)
@@ -267,7 +267,7 @@ class ArenaListScanner:
         y_start = max(0, y_position - 80)
         y_end = min(height, y_position + 20)
 
-        sample_region = frame[y_start:y_end, x_start:x_end]
+        sample_region = frame[y_start:y_end, x_start:x_end].copy()
         if sample_region.size == 0:
             return True  # Assume available if region empty
 
@@ -290,7 +290,7 @@ class ArenaListScanner:
 
         frame = self.window_capture.capture()
         roi_x, roi_y, roi_w, roi_h = self.get_ocr_region(frame)
-        roi_frame = frame[roi_y:roi_y + roi_h, roi_x:roi_x + roi_w]
+        roi_frame = frame[roi_y:roi_y + roi_h, roi_x:roi_x + roi_w].copy()
 
         powers = self.text_recognizer.find_all_team_powers(roi_frame)
 
@@ -349,7 +349,7 @@ class ArenaListScanner:
         self.clicker.natural_delay(ARENA_SCAN_DELAY)
         frame = self.window_capture.capture()
         roi_x, roi_y, roi_w, roi_h = self.get_fluid_ocr_region(frame)
-        roi_frame = frame[roi_y:roi_y + roi_h, roi_x:roi_x + roi_w]
+        roi_frame = frame[roi_y:roi_y + roi_h, roi_x:roi_x + roi_w].copy()
         powers = self.text_recognizer.find_team_powers_hsv(roi_frame)
         return set(p['power'] for p in powers)
 
@@ -546,7 +546,7 @@ class ArenaListScanner:
 
         # Power scan (right side)
         roi_x, roi_y, roi_w, roi_h = self.get_fluid_ocr_region(frame)
-        roi_frame = frame[roi_y:roi_y + roi_h, roi_x:roi_x + roi_w]
+        roi_frame = frame[roi_y:roi_y + roi_h, roi_x:roi_x + roi_w].copy()
 
         debug_prefix = f'{label}_' if self._debug_dir else ''
         powers = self.text_recognizer.find_team_powers_hsv(
@@ -555,7 +555,7 @@ class ArenaListScanner:
 
         # Level scan (left side)
         lvl_x, lvl_y, lvl_w, lvl_h = self.get_fluid_level_region(frame)
-        lvl_frame = frame[lvl_y:lvl_y + lvl_h, lvl_x:lvl_x + lvl_w]
+        lvl_frame = frame[lvl_y:lvl_y + lvl_h, lvl_x:lvl_x + lvl_w].copy()
 
         # Pass power Y positions as hints for the level scanner.
         # Power Y is relative to the power ROI; level Y is relative to the

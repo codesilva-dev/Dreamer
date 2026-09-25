@@ -1,0 +1,369 @@
+22:29:46  [TextRecognizer] Initialized
+22:29:46  ✓ Game window already at correct size (1734x703)
+22:29:46  Kill switch active: press Ctrl+Shift+Q to force-quit at any time
+22:29:46  Arena config: max power = 300,000
+22:29:46  Arena config: max level = 65
+22:29:46  Arena config: OR power ≤ 130,000
+22:29:46  Iron Twins: stage = 13
+22:29:52  
+22:29:52  Daily Loop started
+22:29:52  
+22:29:52  ============================================================
+22:29:52    DAILY LOOP — Cycle 1
+22:29:52  ============================================================
+22:29:52    Daily reset (7 PM EST) — all tasks refreshed
+22:29:52  
+22:29:52    >> Dismiss Junk Offers
+22:29:52  
+22:29:52    --- Dismiss Junk Offers ---
+22:29:54    No junk offers found
+22:29:54    << Dismiss Junk Offers done
+22:29:55  
+22:29:55    >> Collect Gem
+22:29:55  
+22:29:55    --- Dismiss Junk Offers ---
+22:29:57    No junk offers found
+22:29:57  
+22:29:57    --- Collect Gem ---
+22:30:01    Clicked Gem Claim
+22:30:01    << Collect Gem done
+22:30:02  
+22:30:02    >> Free Shop Items
+22:30:02  
+22:30:02    --- Dismiss Junk Offers ---
+22:30:04    No junk offers found
+22:30:04  
+22:30:04  ============================================================
+22:30:04    FREE SHOP ITEMS — LIVE (collecting)
+22:30:04  ============================================================
+22:30:08    Entered shop
+22:30:10    Scanning Packs tab...
+22:30:11      Claim #1 at (1685, 950)
+22:30:16      Claim #2 at (2081, 1119)
+22:30:22      Claim #3 at (1419, 950)
+22:30:27      Claim #4 at (2081, 1119)
+22:30:32    Packs: 4 claim(s)
+22:30:33    Navigating home...
+22:30:36    Free Shop done — 4 claim(s)
+22:30:36  
+22:30:36  ============================================================
+22:30:36    FREE SHOP ITEMS — COMPLETE
+22:30:36  ============================================================
+22:30:36    << Free Shop Items done
+22:30:37  
+22:30:37    >> Menu Rewards
+22:30:37  
+22:30:37    --- Dismiss Junk Offers ---
+22:30:39    No junk offers found
+22:30:39  
+22:30:39    --- Menu Rewards ---
+22:30:40    Menu reward not found — skipping
+22:30:40    << Menu Rewards done
+22:30:41  
+22:30:41    >> Playtime Rewards
+22:30:41  
+22:30:41    --- Dismiss Junk Offers ---
+22:30:43    No junk offers found
+22:30:43  
+22:30:43    --- Playtime Rewards ---
+22:30:47    Clicked AccruedRewards
+22:30:52    Clicked Claim All Rewards
+22:30:55    Closed rewards panel
+22:30:55    << Playtime Rewards done
+22:30:56  
+22:30:56    >> Guardian Ring
+22:30:56  
+22:30:56    --- Dismiss Junk Offers ---
+22:30:58    No junk offers found
+22:30:58  
+22:30:58  ============================================================
+22:30:58    GUARDIAN RING
+22:30:58  ============================================================
+22:30:59    Guardian Ring not found — skipping
+22:30:59    << Guardian Ring done
+22:31:00  
+22:31:00    >> Check Market
+22:31:00  
+22:31:00    --- Dismiss Junk Offers ---
+22:31:02    No junk offers found
+22:31:02  
+22:31:02    --- Check Market ---
+22:31:06    Clicked Fresh Market
+22:31:10    Clicked Buy Shard
+22:31:14    Shard #1 purchased
+22:31:16    Market: 1 shard(s) purchased
+22:31:20    Navigated back from Market
+22:31:20    << Check Market done
+22:31:21  
+22:31:21    >> CB Main
+22:31:21  
+22:31:21    --- Dismiss Junk Offers ---
+22:31:22    No junk offers found
+22:31:22  
+22:31:22    --- Clan Boss: ultranightmare ---
+22:31:23    Looking for Battle button...
+22:31:27    Clicked Battle
+22:31:28    Looking for CB Stages...
+22:31:31    Clicked CB Stages
+22:31:32    Looking for CB1...
+22:31:36    Clicked CB1
+22:31:37    Looking for ultranightmare difficulty...
+22:31:38    ultranightmare difficulty not found on screen
+22:31:38    << CB Main done
+22:31:39  
+22:31:39    >> Iron Twins
+22:31:39  
+22:31:39    --- Dismiss Junk Offers ---
+22:31:41    Dismissing junk offer #1...
+22:31:43    Dismissing junk offer #2...
+22:31:46    Dismissing junk offer #3...
+22:31:48    Dismissed 3 junk offer(s)
+22:31:48  
+22:31:48    --- Iron Twins: Stage 13 ---
+22:31:49    Looking for Battle button...
+22:31:53    Clicked Battle
+22:31:54    Looking for Dungeons...
+22:31:57    Clicked Dungeons
+22:31:58    Looking for Iron Twins...
+22:32:02    Clicked Iron Twins
+22:32:03    Checking keys...
+22:32:04    OCR found "Stage 13" at Y=384
+22:32:04    Stage 13 already visible — skipping scroll
+22:32:04    Found Stage 13 text at Y=384
+22:32:05    [debug] Saved E:\Projects\Misc\Dreamer\debug\it_initial_found.png
+22:32:05    Clicking battle button at (1588, 398) (Y offset: 14px)
+22:32:08    Stage 13 selected
+22:32:12    Clicked Super Raid Off — enabling Super Raid
+22:32:12  
+22:32:12    ┌─ Battle 1 ─┐
+22:32:17    Clicked PVE Battle — fight starting
+22:32:17    Waiting for battle to end (timeout: 600s)...
+22:34:16    Battle complete (119s) — no keys remaining
+22:34:20    Clicked Bastion — exiting Iron Twins
+22:34:20    Keys exhausted after 1 battle(s)
+22:34:20    Iron Twins: keys exhausted (resets at 7 PM EST)
+22:34:20    << Iron Twins done
+22:34:21  
+22:34:21    >> Classic Arena
+22:34:21  
+22:34:21    --- Dismiss Junk Offers ---
+22:34:23    No junk offers found
+22:34:23  
+22:34:23    Navigating to Classic Arena...
+22:34:23    Looking for "Battle"...
+22:34:26    Clicked "Battle"
+22:34:26    Looking for "Arena"...
+22:34:30    Clicked "Arena"
+22:34:30    Looking for "Classic Arena"...
+22:34:33    Clicked "Classic Arena"
+22:34:33    Reached Classic Arena
+22:34:33  
+22:34:33  ============================================================
+22:34:33    [V2] CLASSIC ARENA — FULL BATTLE (continuous)
+22:34:33  ============================================================
+22:34:33    Acquiring game window...
+22:34:34    Window: (1064, 614) 1734x703
+22:34:34  
+22:34:34    ┌─ CYCLE #1 (total battles: 0) ─┐
+22:34:37      At top (fling)
+22:34:37  
+22:34:37    [V2] Fluid scanning opponent list...
+22:34:37      Debug frames → E:\Projects\Misc\Dreamer\debug
+22:34:37    [OCR]   Dual-column projection found 4 'Team Power:' rows
+22:34:37    [OCR]   Band 1 Y=145-154 ->202,520 ('202.52K') votes={202520: 4, 202920: 1}
+22:34:38    [OCR]   Band 2 Y=261-270 ->63,970 ('63,970') votes={63970: 4}
+22:34:38    [OCR]   Band 3 Y=377-385 ->329,600 ('329.6K') votes={329600: 4, 375000: 1}
+22:34:38    [OCR]   Band 4 Y=492-501 ->333,660 ('333.66K') votes={333660: 4, 223660: 1, 33660: 1}
+22:34:38    [OCR]   HSV scan found 4 power values
+22:34:38    [OCR]   [LVL] Power-guided: 4 positions (offset=16px up)
+22:34:39    [OCR]   [LVL] Pos 1 Y=399 -> L78 (all: {78: 5, 7: 1}, strict: {78: 4, 7: 1})
+22:34:40    [OCR]   [LVL] Pos 2 Y=747 -> L58 (all: {28: 2, 58: 6, 98: 2}, strict: {28: 2, 58: 4})
+22:34:41    [OCR]   [LVL] Pos 3 Y=1095 -> L74 (all: {74: 4}, strict: {74: 4})
+22:34:42    [OCR]   [LVL] Pos 4 Y=1440 -> L98 (all: {98: 12}, strict: {98: 6})
+22:34:42    [OCR]   [LVL] Found 4 player levels
+22:34:42      Visible: 4 opponents (3 avail) — 202,520, 63,970, 329,600, 333,660
+22:34:42        + 4 snatched at top
+22:34:45    [OCR]   Dual-column projection found 4 'Team Power:' rows
+22:34:45    [OCR]   Band 1 Y=90-98 ->329,600 ('329.6K') votes={329600: 4, 375000: 1}
+22:34:46    [OCR]   Band 2 Y=205-214 ->333,660 ('333.66K') votes={333660: 4, 233660: 1, 33660: 1}
+22:34:46    [OCR]   Band 3: WARNING no majority after 4 reads ({257870: 1, 727000: 1, 252870: 1, 292870: 1})
+22:34:46    [OCR]   Band 3 Y=321-329 ->727,000 ('727.K') votes={257870: 1, 727000: 1, 252870: 1, 292870: 1}
+22:34:47    [OCR]   Band 4 Y=436-445 ->223,140 ('223.14K') votes={223140: 5}
+22:34:47    [OCR]   HSV scan found 4 power values
+22:34:47    [OCR]   [LVL] Power-guided: 4 positions (offset=16px up)
+22:34:47    [OCR]   [LVL] Pos 1 Y=234 -> L74 (all: {74: 4}, strict: {74: 4})
+22:34:48    [OCR]   [LVL] Pos 2 Y=579 -> L98 (all: {98: 12}, strict: {98: 6})
+22:34:49    [OCR]   [LVL] Pos 3 Y=927 -> L99 (all: {99: 12}, strict: {99: 6})
+22:34:50    [OCR]   [LVL] Pos 4 Y=1272 -> L66 (all: {66: 12}, strict: {66: 6})
+22:34:50    [OCR]   [LVL] Found 4 player levels
+22:34:50        + 2 new after scroll 1 (4 visible)
+22:34:53    [OCR]   Dual-column projection found 5 'Team Power:' rows
+22:34:53    [OCR]   Band 1 Y=71-82 -> no valid read
+22:34:54    [OCR]   Band 2 Y=149-158 ->223,140 ('223.14K') votes={223140: 6}
+22:34:54    [OCR]   Band 3 Y=265-274 ->355,740 ('355.74K') votes={355740: 2, 395400: 1, 355440: 1}
+22:34:55    [OCR]   Band 4 Y=352-360 -> no valid read
+22:34:55    [OCR]   Band 5 Y=496-505 ->346,640 ('346.64K') votes={346640: 6}
+22:34:55    [OCR]   HSV scan found 3 power values
+22:34:55    [OCR]   [LVL] Power-guided: 3 positions (offset=16px up)
+22:34:56    [OCR]   [LVL] Pos 1 Y=411 -> L66 (all: {66: 12}, strict: {66: 6})
+22:34:57    [OCR]   [LVL] Pos 2 Y=759 -> L95 (all: {95: 12}, strict: {95: 6})
+22:34:58    [OCR]   [LVL] Pos 3 Y=1452 -> L95 (all: {95: 12}, strict: {95: 6})
+22:34:58    [OCR]   [LVL] Found 3 player levels
+22:34:58        + 2 new after scroll 2 (3 visible)
+22:35:00    [OCR]   Dual-column projection found 6 'Team Power:' rows
+22:35:01    [OCR]   Band 1 Y=62-72 -> no valid read
+22:35:01    [OCR]   Band 2 Y=141-149 ->355,740 ('355.74K') votes={355740: 2, 395740: 1, 28000: 1, 393740: 1}
+22:35:02    [OCR]   Band 3: WARNING no majority after 1 reads ({260460: 1})
+22:35:02    [OCR]   Band 3 Y=228-236 ->260,460 ('260460') votes={260460: 1}
+22:35:02    [OCR]   Band 4 Y=291-306 -> no valid read
+22:35:03    [OCR]   Band 5 Y=372-380 ->346,640 ('346.64K') votes={346640: 2}
+22:35:03    [OCR]   Band 6 Y=487-496 ->419,220 ('419.22K') votes={419220: 4, 219220: 2}
+22:35:03    [OCR]   HSV scan found 4 power values
+22:35:03    [OCR]   [LVL] Power-guided: 4 positions (offset=12px up)
+22:35:04    [OCR]   [LVL] Pos 1 Y=399 -> L95 (all: {95: 12}, strict: {95: 6})
+22:35:05    [OCR]   [LVL] Pos 2 Y=660 -> no valid read (0 reads)
+22:35:06    [OCR]   [LVL] Pos 3 Y=1092 -> L95 (all: {95: 12}, strict: {95: 6})
+22:35:07    [OCR]   [LVL] Pos 4 Y=1437 -> L100 (all: {100: 7}, strict: {100: 6})
+22:35:07    [OCR]   [LVL] Found 3 player levels
+22:35:07        + 2 new after scroll 3 (4 visible)
+22:35:09    [OCR]   Dual-column projection found 6 'Team Power:' rows
+22:35:10    [OCR]   Band 1 Y=62-72 -> no valid read
+22:35:10    [OCR]   Band 2 Y=141-149 ->355,740 ('355.74K') votes={355740: 2, 395740: 1, 2000: 1, 23220: 1, 393740: 1}
+22:35:11    [OCR]   Band 3: WARNING no majority after 1 reads ({260460: 1})
+22:35:11    [OCR]   Band 3 Y=228-236 ->260,460 ('260460') votes={260460: 1}
+22:35:11    [OCR]   Band 4 Y=291-306 -> no valid read
+22:35:12    [OCR]   Band 5 Y=372-380 ->346,640 ('346.64K') votes={346640: 3}
+22:35:12    [OCR]   Band 6 Y=487-496 ->419,220 ('419.22K') votes={419220: 4, 219220: 2}
+22:35:12    [OCR]   HSV scan found 4 power values
+22:35:12    [OCR]   [LVL] Power-guided: 4 positions (offset=12px up)
+22:35:13    [OCR]   [LVL] Pos 1 Y=399 -> L95 (all: {95: 12}, strict: {95: 6})
+22:35:14    [OCR]   [LVL] Pos 2 Y=660 -> no valid read (0 reads)
+22:35:15    [OCR]   [LVL] Pos 3 Y=1092 -> L95 (all: {95: 12}, strict: {95: 6})
+22:35:16    [OCR]   [LVL] Pos 4 Y=1437 -> L100 (all: {100: 9}, strict: {100: 6})
+22:35:16    [OCR]   [LVL] Found 3 player levels
+22:35:16        All duplicates (x1)
+22:35:16    [V2] End of list reached
+22:35:16    [V2] Fluid scan complete: 10 total, 9 available
+22:35:16      Sorted: 63,970 (L58), 202,520 (L78), 223,140 (L66), 260,460, 329,600 (L74), 333,660 (L98), 346,640 (L95), 355,740 (L95), 419,220 (L100), 727,000 (L99)
+22:35:16    Filtered out 1 already defeated
+22:35:16    Filter (power ≤ 300,000 AND level ≤ L65 OR power ≤ 130,000): 9 → 0
+22:35:16    Targets (weakest first): 0
+22:35:16    No available targets — refreshing...
+22:35:19    Refreshing opponent list (free)...
+22:35:19  
+22:35:19    ┌─ CYCLE #2 (total battles: 0) ─┐
+22:35:23      At top (fling)
+22:35:23  
+22:35:23    [V2] Fluid scanning opponent list...
+22:35:23      Debug frames → E:\Projects\Misc\Dreamer\debug
+22:35:23    [OCR]   Dual-column projection found 4 'Team Power:' rows
+22:35:23    [OCR]   Band 1 Y=146-154 ->272,230 ('272.23K') votes={272230: 2, 242230: 2}
+22:35:23    [OCR]   Band 2 Y=261-270 ->133,270 ('133.27K') votes={133270: 5}
+22:35:24    [OCR]   Band 3 Y=377-385 ->242,310 ('242.31K') votes={242310: 2, 22310: 1, 272310: 1}
+22:35:24    [OCR]   Band 4 Y=492-501 ->339,650 ('339.65K') votes={339650: 3, 339690: 1, 233650: 1, 39695: 1}
+22:35:24    [OCR]   HSV scan found 4 power values
+22:35:24    [OCR]   [LVL] Power-guided: 4 positions (offset=16px up)
+22:35:25    [OCR]   [LVL] Pos 1 Y=402 -> L63 (all: {63: 12}, strict: {63: 6})
+22:35:26    [OCR]   [LVL] Pos 2 Y=747 -> L58 (all: {58: 11, 38: 1}, strict: {58: 5, 38: 1})
+22:35:27    [OCR]   [LVL] Pos 3 Y=1095 -> L70 (all: {70: 12}, strict: {70: 6})
+22:35:28    [OCR]   [LVL] Pos 4 Y=1440 -> L57 (all: {57: 6, 37: 2, 7: 1, 87: 1}, strict: {57: 4, 37: 2})
+22:35:28    [OCR]   [LVL] Found 4 player levels
+22:35:28      Visible: 4 opponents (4 avail) — 272,230, 133,270, 242,310, 339,650
+22:35:28        + 4 snatched at top
+22:35:31    [OCR]   Dual-column projection found 4 'Team Power:' rows
+22:35:31    [OCR]   Band 1 Y=90-98 ->242,310 ('242.31K') votes={242310: 2, 22310: 1, 272310: 1}
+22:35:32    [OCR]   Band 2 Y=205-214 ->339,650 ('339.65K') votes={339650: 3, 339690: 1, 233650: 1, 39650: 1}
+22:35:32    [OCR]   Band 3 Y=321-329 ->287,560 ('287.56K') votes={287560: 2, 707560: 1}
+22:35:32    [OCR]   Band 4 Y=436-445 ->287,150 ('287.15K') votes={287150: 3, 287190: 1, 27150: 1}
+22:35:32    [OCR]   HSV scan found 4 power values
+22:35:32    [OCR]   [LVL] Power-guided: 4 positions (offset=16px up)
+22:35:33    [OCR]   [LVL] Pos 1 Y=234 -> L70 (all: {70: 12}, strict: {70: 6})
+22:35:34    [OCR]   [LVL] Pos 2 Y=579 -> L57 (all: {57: 6, 37: 3, 87: 1}, strict: {57: 4, 37: 2})
+22:35:35    [OCR]   [LVL] Pos 3 Y=927 -> L100 (all: {100: 12}, strict: {100: 6})
+22:35:36    [OCR]   [LVL] Pos 4 Y=1272 -> L75 (all: {79: 2, 75: 8}, strict: {79: 2, 75: 4})
+22:35:36    [OCR]   [LVL] Found 4 player levels
+22:35:36        + 1 new after scroll 1 (4 visible)
+22:35:39    [OCR]   Dual-column projection found 5 'Team Power:' rows
+22:35:39    [OCR]   Band 1 Y=69-82 -> no valid read
+22:35:40    [OCR]   Band 2 Y=149-158 ->287,150 ('287.15K') votes={287150: 3, 287190: 1, 227150: 1, 27150: 1}
+22:35:40    [OCR]   Band 3 Y=265-274 ->214,970 ('214.97K') votes={214970: 4}
+22:35:40    [OCR]   Band 4 Y=380-389 ->295,690 ('295.69K') votes={295690: 4, 45000: 1}
+22:35:41    [OCR]   Band 5 Y=496-505 ->275,580 ('275.58K') votes={275580: 2, 29980: 1, 23980: 1, 245980: 1}
+22:35:41    [OCR]   HSV scan found 4 power values
+22:35:41    [OCR]   [LVL] Power-guided: 4 positions (offset=16px up)
+22:35:42    [OCR]   [LVL] Pos 1 Y=411 -> L75 (all: {79: 2, 75: 8}, strict: {79: 2, 75: 4})
+22:35:43    [OCR]   [LVL] Pos 2 Y=759 -> L87 (all: {87: 12}, strict: {87: 6})
+22:35:44    [OCR]   [LVL] Pos 3 Y=1104 -> L94 (all: {94: 12}, strict: {94: 6})
+22:35:44    [OCR]   [LVL] Pos 4 Y=1452 -> L88 (all: {88: 3}, strict: {88: 1})
+22:35:44    [OCR]   [LVL] Found 4 player levels
+22:35:44        + 3 new after scroll 2 (4 visible)
+22:35:47    [OCR]   Dual-column projection found 5 'Team Power:' rows
+22:35:48    [OCR]   Band 1 Y=60-75 -> no valid read
+22:35:48    [OCR]   Band 2 Y=140-149 ->214,970 ('214.97K') votes={214970: 4, 21570: 1}
+22:35:48    [OCR]   Band 3 Y=256-265 ->295,690 ('295.69K') votes={295690: 4, 298609: 1}
+22:35:49    [OCR]   Band 4 Y=372-380 ->275,580 ('275.58K') votes={275580: 2, 245580: 1, 243380: 1}
+22:35:49    [OCR]   Band 5 Y=487-496 ->318,470 ('318.47K') votes={318470: 4, 1470: 1}
+22:35:49    [OCR]   HSV scan found 4 power values
+22:35:49    [OCR]   [LVL] Power-guided: 4 positions (offset=16px up)
+22:35:50    [OCR]   [LVL] Pos 1 Y=384 -> L87 (all: {87: 12}, strict: {87: 6})
+22:35:51    [OCR]   [LVL] Pos 2 Y=732 -> L94 (all: {94: 12}, strict: {94: 6})
+22:35:52    [OCR]   [LVL] Pos 3 Y=1080 -> L88 (all: {8: 1, 88: 3, 38: 1}, strict: {8: 1, 88: 2})
+22:35:53    [OCR]   [LVL] Pos 4 Y=1425 -> L68 (all: {68: 12}, strict: {68: 6})
+22:35:53    [OCR]   [LVL] Found 4 player levels
+22:35:53        + 1 new after scroll 3 (4 visible)
+22:35:56    [OCR]   Dual-column projection found 5 'Team Power:' rows
+22:35:56    [OCR]   Band 1 Y=60-75 -> no valid read
+22:35:56    [OCR]   Band 2 Y=140-149 ->214,970 ('214.97K') votes={214970: 4, 21570: 1}
+22:35:57    [OCR]   Band 3 Y=256-265 ->295,690 ('295.69K') votes={295690: 4, 298609: 1}
+22:35:57    [OCR]   Band 4: WARNING no majority after 3 reads ({275580: 1, 245580: 1, 243338: 1})
+22:35:57    [OCR]   Band 4 Y=372-380 ->275,580 ('275.58K') votes={275580: 1, 245580: 1, 243338: 1}
+22:35:58    [OCR]   Band 5 Y=487-496 ->318,470 ('318.47K') votes={318470: 4, 1470: 1}
+22:35:58    [OCR]   HSV scan found 4 power values
+22:35:58    [OCR]   [LVL] Power-guided: 4 positions (offset=16px up)
+22:35:59    [OCR]   [LVL] Pos 1 Y=384 -> L87 (all: {87: 12}, strict: {87: 6})
+22:36:00    [OCR]   [LVL] Pos 2 Y=732 -> L94 (all: {94: 12}, strict: {94: 6})
+22:36:01    [OCR]   [LVL] Pos 3 Y=1080 -> L88 (all: {88: 3, 38: 1}, strict: {88: 2})
+22:36:01    [OCR]   [LVL] Pos 4 Y=1425 -> L68 (all: {68: 12}, strict: {68: 6})
+22:36:01    [OCR]   [LVL] Found 4 player levels
+22:36:01        All duplicates (x1)
+22:36:01    [V2] End of list reached
+22:36:01    [V2] Fluid scan complete: 9 total, 9 available
+22:36:01      Sorted: 133,270 (L58), 214,970 (L87), 242,310 (L70), 272,230 (L63), 275,580 (L88), 287,560 (L100), 295,690 (L94), 318,470 (L68), 339,650 (L57)
+22:36:01    Filter (power ≤ 300,000 AND level ≤ L65 OR power ≤ 130,000): 9 → 2
+22:36:01    Targets (weakest first): 2
+22:36:01      133,270, 272,230
+22:36:04      At top (fling)
+22:36:05      Snapshot 2nd opponent (607x98px)
+22:36:05    [1/2] Targeting Power 133,270
+22:36:05      List check #1: match=1.0000
+22:36:05      Searching for Power 133,270...
+22:36:08      At top (fling)
+22:36:09    [OCR]   Dual-column projection found 4 'Team Power:' rows
+22:36:09    [OCR]   Band 1 Y=146-154 ->272,230 ('272.23K') votes={272230: 2, 242230: 2}
+22:36:10    [OCR]   Band 2 Y=261-270 ->133,270 ('133.27K') votes={133270: 5}
+22:36:10    [OCR]   Band 3 Y=377-385 ->242,310 ('242.31K') votes={242310: 2, 22310: 1, 272310: 1}
+22:36:11    [OCR]   Band 4 Y=492-501 ->339,650 ('339.65K') votes={339650: 4, 223650: 1, 229650: 1}
+22:36:11    [OCR]   HSV scan found 4 power values
+22:36:11      Found at y=433
+22:36:11      Clicking Battle at (2624, 997)
+22:36:36      Battle 1 complete
+22:36:36    [2/2] Targeting Power 272,230
+22:36:37      List check #2: match=0.9208
+22:36:37      Searching for Power 272,230...
+22:36:40      At top (fling)
+22:36:40    [OCR]   Dual-column projection found 4 'Team Power:' rows
+22:36:41    [OCR]   Band 1 Y=146-154 ->272,230 ('272.23K') votes={272230: 2, 242230: 2}
+22:36:41    [OCR]   Band 2 Y=261-270 ->133,270 ('133.27K') votes={133270: 4, 32000: 1}
+22:36:42    [OCR]   Band 3 Y=377-385 ->242,310 ('242.31K') votes={242310: 2, 22310: 1, 272310: 1}
+22:36:42    [OCR]   Band 4 Y=492-501 ->339,650 ('339.65K') votes={339650: 4, 233650: 1, 39695: 1}
+22:36:42    [OCR]   HSV scan found 4 power values
+22:36:42      Found at y=318
+22:36:42      Clicking Battle at (2624, 882)
+22:37:33      Battle 2 complete
+22:37:33    Attack phase done: 2 battles, 0 not found, 0 skipped
+22:37:34    No free refresh available
+22:37:34    No free refresh — waiting 15 minutes for reset...
+22:38:34      14 minute(s) remaining...
+22:39:34      13 minute(s) remaining...
+22:40:34      12 minute(s) remaining...
+22:41:34      11 minute(s) remaining...

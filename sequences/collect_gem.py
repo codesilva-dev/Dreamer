@@ -6,11 +6,11 @@ Simple single-click task: detect the gem, click it, done.
 
 from natural_click import NaturalClick
 
-from config import TEMPLATE_COLLECT_GEM
+from config import TEMPLATE_COLLECT_GEM, TEMPLATE_GEM_CLAIM
 
 
 class CollectGemSequence:
-    """Find the collectGem icon and click it."""
+    """Find the collectGem or gemClaim icon and click it."""
 
     def __init__(self, window_capture, template_matcher, log_func=None,
                  stop_check=None):
@@ -27,6 +27,8 @@ class CollectGemSequence:
         """
         Run the collect gem sequence.
 
+        Checks for both collectGem (full gems) and gemClaim (partial gems).
+
         Returns:
             True if completed successfully, False on error/abort.
         """
@@ -36,18 +38,22 @@ class CollectGemSequence:
         try:
             self.window_capture.get_window()
 
-            found, _, _ = self.template_matcher.find_template(
-                TEMPLATE_COLLECT_GEM, threshold=0.8
-            )
-            if not found:
-                self.log('  Collect Gem not found — skipping')
-                return True
+            # Try collectGem first, then gemClaim
+            for template, label in [
+                (TEMPLATE_COLLECT_GEM, 'Collect Gem'),
+                (TEMPLATE_GEM_CLAIM, 'Gem Claim'),
+            ]:
+                found, _, _ = self.template_matcher.find_template(
+                    template, threshold=0.8
+                )
+                if found:
+                    self.template_matcher.find_and_click(
+                        template, wait_after=1.5
+                    )
+                    self.log(f'  Clicked {label}')
+                    return True
 
-            self.template_matcher.find_and_click(
-                TEMPLATE_COLLECT_GEM, wait_after=1.5
-            )
-            self.log('  Clicked Collect Gem')
-
+            self.log('  Collect Gem not found — skipping')
             return True
 
         except Exception as e:

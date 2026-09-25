@@ -9,9 +9,16 @@ class TemplateMatcher:
         self.window_capture = window_capture
         self.clicker = NaturalClick()
 
-    def find_template(self, template_path, threshold=0.8):
+    def find_template(self, template_path, threshold=0.8, use_color=False):
         """
         Find template image in window without clicking.
+
+        Args:
+            template_path: Path to the template image file.
+            threshold: Minimum match confidence (0-1).
+            use_color: If True, match using full BGR color channels instead
+                of grayscale. Better for distinguishing small text/digit
+                differences where color provides extra signal.
 
         Returns:
             (found, location, size) where:
@@ -26,22 +33,26 @@ class TemplateMatcher:
         if template is None:
             return False, None, None
 
-        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        gray_template = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
+        if use_color:
+            match_frame = frame
+            match_template = template
+        else:
+            match_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            match_template = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
 
         for scale in [1.0, 0.9, 1.1, 0.8, 1.2]:
-            scaled_template = cv2.resize(gray_template, None, fx=scale, fy=scale,
+            scaled_template = cv2.resize(match_template, None, fx=scale, fy=scale,
                                         interpolation=cv2.INTER_CUBIC)
 
-            if (scaled_template.shape[0] > gray_frame.shape[0] or
-                scaled_template.shape[1] > gray_frame.shape[1]):
+            if (scaled_template.shape[0] > match_frame.shape[0] or
+                scaled_template.shape[1] > match_frame.shape[1]):
                 continue
 
-            result = cv2.matchTemplate(gray_frame, scaled_template, cv2.TM_CCOEFF_NORMED)
+            result = cv2.matchTemplate(match_frame, scaled_template, cv2.TM_CCOEFF_NORMED)
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
 
             if max_val >= threshold:
-                h, w = scaled_template.shape
+                h, w = scaled_template.shape[:2]
                 center_x = max_loc[0] + w // 2
                 center_y = max_loc[1] + h // 2
                 return True, (center_x, center_y), (w, h)

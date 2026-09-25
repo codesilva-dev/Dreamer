@@ -23,6 +23,7 @@ from config import (
     TEMPLATE_LIMITED_OFFERS,
     TEMPLATE_SMALL_PACK,
     TEMPLATE_SMALL_PACK_2,
+    TEMPLATE_REG_PACK,
     TEMPLATE_BACK,
 )
 
@@ -185,12 +186,33 @@ class FreeShopItemsSequence:
                     )
                     self.clicker.natural_delay(1.0)
 
-                # Step 5: Collect claims
-                self.log('  Scanning for claims...')
+                # Step 5: Collect Small Pack claims
+                self.log('  Scanning for Small Pack claims...')
                 claims = self._collect_all_claims(TEMPLATE_CLAIM_GIFT)
                 total += claims
                 if claims:
-                    self.log(f'  Limited Offers: {claims} claim(s)')
+                    self.log(f'  Small Pack: {claims} claim(s)')
+
+                if self.should_stop():
+                    return False
+
+                # Step 5b: Check for Reg Pack tab
+                self.clicker.natural_delay(0.5)
+                rp_found, _, _ = self.template_matcher.find_template(
+                    TEMPLATE_REG_PACK, threshold=0.8
+                )
+                if rp_found:
+                    self.log('  Clicking Reg Pack tab...')
+                    self.template_matcher.find_and_click(
+                        TEMPLATE_REG_PACK, wait_after=CLICK_DELAY
+                    )
+                    self.clicker.natural_delay(1.0)
+
+                    self.log('  Scanning for Reg Pack claims...')
+                    claims = self._collect_all_claims(TEMPLATE_CLAIM_GIFT)
+                    total += claims
+                    if claims:
+                        self.log(f'  Reg Pack: {claims} claim(s)')
 
             # Step 6: Navigate home
             self.log('  Navigating home...')

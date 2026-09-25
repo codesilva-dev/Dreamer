@@ -1,7 +1,218 @@
-22:51:08  [TextRecognizer] Initialized
-22:51:08  ✓ Game window already at correct size (1734x703)
-22:51:08  Kill switch active: press Ctrl+Shift+Q to force-quit at any time
-22:51:08  Arena config: max power = 300,000
-22:51:08  Arena config: max level = 65
-22:51:08  Arena config: OR power ≤ 130,000
-22:51:08  Iron Twins: stage = 13
+23:54:55  [TextRecognizer] Initialized
+23:54:55  ✓ Game window already at correct size (1734x703)
+23:54:55  Kill switch active: press Ctrl+Shift+Q to force-quit at any time
+23:54:55  Arena config: max power = 300,000
+23:54:55  Arena config: max level = 65
+23:54:55  Arena config: OR power ≤ 130,000
+23:54:55  Iron Twins: stage = 13
+23:55:40  ============================================================
+23:55:40    DAILY LOOP — Cycle 1
+23:55:40  ============================================================
+23:55:40  
+23:55:40  Daily Loop thread started
+23:55:40  
+23:55:41    --- Dismiss Junk Offers ---
+23:55:41  
+23:55:41    >> Dismiss Junk Offers
+23:55:41  
+23:55:43    Dismissing junk offer #1...
+23:55:45    Dismissing junk offer #2...
+23:55:48    << Dismiss Junk Offers done
+23:55:48    Dismissed 2 junk offer(s)
+23:55:49    --- Dismiss Junk Offers ---
+23:55:49  
+23:55:51    No junk offers found
+23:55:51    --- Collect Gem ---
+23:55:51  
+23:55:51    >> Collect Gem
+23:55:51  
+23:55:52    << Collect Gem done
+23:55:52    Collect Gem not found — skipping
+23:55:53    --- Dismiss Junk Offers ---
+23:55:53  
+23:55:55    No junk offers found
+23:55:55  ============================================================
+23:55:55    FREE SHOP ITEMS — LIVE (collecting)
+23:55:55  ============================================================
+23:55:55  
+23:55:55    >> Free Shop Items
+23:55:55  
+23:55:56    << Free Shop Items done
+23:55:56    No free shop indicator — nothing to collect
+23:55:57    --- Dismiss Junk Offers ---
+23:55:57  
+23:55:59    No junk offers found
+23:56:00    --- Menu Rewards ---
+23:56:00  
+23:56:00    >> Menu Rewards
+23:56:00  
+23:56:01    << Menu Rewards done
+23:56:01    Menu reward not found — skipping
+23:56:02    --- Dismiss Junk Offers ---
+23:56:02  
+23:56:04    No junk offers found
+23:56:04    --- Playtime Rewards ---
+23:56:04  
+23:56:04    >> Playtime Rewards
+23:56:04  
+23:56:05    << Playtime Rewards done
+23:56:05    AccruedRewards not found — skipping
+23:56:06    --- Dismiss Junk Offers ---
+23:56:06  
+23:56:08    No junk offers found
+23:56:08  ============================================================
+23:56:08    GUARDIAN RING
+23:56:08  ============================================================
+23:56:08  
+23:56:08    >> Guardian Ring
+23:56:08  
+23:56:09    << Guardian Ring done
+23:56:09    Guardian Ring not found — skipping
+23:56:10    --- Dismiss Junk Offers ---
+23:56:10  
+23:56:12    No junk offers found
+23:56:13    --- Check Market ---
+23:56:13  
+23:56:13    >> Check Market
+23:56:13  
+23:56:14    << Check Market done
+23:56:14    Fresh Market not found — skipping
+23:56:15    --- Dismiss Junk Offers ---
+23:56:15  
+23:56:17    No junk offers found
+23:56:17    << Iron Twins done
+23:56:17    Iron Twins: skipped (no keys)
+23:56:17    >> Iron Twins
+23:56:17  
+23:56:18    --- Dismiss Junk Offers ---
+23:56:18  
+23:56:20    No junk offers found
+23:56:21    Looking for "Battle"...
+23:56:21    Navigating to Classic Arena...
+23:56:21  
+23:56:21    >> Classic Arena
+23:56:21  
+23:56:24    Looking for "Arena"...
+23:56:24    Clicked "Battle"
+23:56:27    Looking for "Classic Arena"...
+23:56:27    Clicked "Arena"
+23:56:31    Acquiring game window...
+23:56:31  ============================================================
+23:56:31    [V2] CLASSIC ARENA — FULL BATTLE (continuous)
+23:56:31  ============================================================
+23:56:31  
+23:56:31    Reached Classic Arena
+23:56:31    Clicked "Classic Arena"
+23:56:31    ┌─ CYCLE #1 (total battles: 0) ─┐
+23:56:31  
+23:56:31    Window: (966, 310) 1734x703
+23:56:34    [V2] Fluid scanning opponent list...
+23:56:34  
+23:56:34      At top (fling)
+23:56:34      Debug frames → E:\Projects\Misc\Dreamer\debug
+23:56:34    [OCR]   Dual-column projection found 4 'Team Power:' rows
+23:56:35    [OCR]   Band 1 Y=145-154 ->268,630 ('268.63K') votes={268630: 4, 26630: 1}
+23:56:35    [OCR]   Band 2 Y=261-270 ->211,710 ('211.71K') votes={211710: 2, 211410: 2}
+23:56:36    [OCR]   Band 3: WARNING no majority after 4 reads ({24000: 1, 2000: 1, 277420: 1, 247420: 1})
+23:56:36    [OCR]   Band 3 Y=377-385 ->277,420 ('277.42K') votes={24000: 1, 2000: 1, 277420: 1, 247420: 1}
+23:56:36    [OCR]   Band 4 Y=492-501 ->191,160 ('191.16K') votes={191160: 5, 131160: 1}
+23:56:36    [OCR]   HSV scan found 4 power values
+23:56:36    [OCR]   [LVL] Power-guided: 4 positions (offset=16px up)
+23:56:37    [OCR]   [LVL] Pos 1 Y=399 -> L63 (all: {63: 12}, strict: {63: 6})
+23:56:38    [OCR]   [LVL] Pos 2 Y=747 -> L100 (all: {100: 12}, strict: {100: 6})
+23:56:39    [OCR]   [LVL] Pos 3 Y=1095 -> L77 (all: {77: 2, 7: 3}, strict: {77: 2, 7: 2})
+23:56:40    [OCR]   [LVL] Pos 4 Y=1440 -> L63 (all: {63: 11}, strict: {63: 6})
+23:56:40    [OCR]   [LVL] Found 4 player levels
+23:56:40        + 4 snatched at top
+23:56:40      Visible: 4 opponents (3 avail) — 268,630, 211,710, 277,420, 191,160
+23:56:43    [OCR]   Dual-column projection found 4 'Team Power:' rows
+23:56:43    [OCR]   Band 1: WARNING no majority after 3 reads ({24000: 1, 2000: 1, 277420: 1})
+23:56:43    [OCR]   Band 1 Y=90-98 ->277,420 ('277.42K') votes={24000: 1, 2000: 1, 277420: 1}
+23:56:44    [OCR]   Band 2 Y=205-214 ->191,160 ('191.16K') votes={191160: 5, 141160: 1}
+23:56:44    [OCR]   Band 3 Y=321-329 ->171,570 ('171.57K') votes={171570: 2, 11570: 1, 141900: 1}
+23:56:44    [OCR]   Band 4 Y=436-445 ->295,480 ('295.48K') votes={295480: 3, 299480: 1}
+23:56:44    [OCR]   HSV scan found 4 power values
+23:56:44    [OCR]   [LVL] Power-guided: 4 positions (offset=16px up)
+23:56:45    [OCR]   [LVL] Pos 1 Y=234 -> L77 (all: {77: 2, 7: 2}, strict: {77: 2, 7: 2})
+23:56:46    [OCR]   [LVL] Pos 2 Y=579 -> L63 (all: {63: 11}, strict: {63: 6})
+23:56:47    [OCR]   [LVL] Pos 3 Y=927 -> L73 (all: {73: 12}, strict: {73: 6})
+23:56:48    [OCR]   [LVL] Pos 4 Y=1272 -> L96 (all: {96: 6, 6: 2}, strict: {96: 6})
+23:56:48    [OCR]   [LVL] Found 4 player levels
+23:56:48        + 2 new after scroll 1 (4 visible)
+23:56:51    [OCR]   Dual-column projection found 4 'Team Power:' rows
+23:56:51    [OCR]   Band 1 Y=149-158 ->295,480 ('295.48K') votes={295480: 4}
+23:56:52    [OCR]   Band 2 Y=265-274 ->145,240 ('145.24K') votes={145240: 3, 149240: 1, 142000: 1}
+23:56:52    [OCR]   Band 3 Y=381-389 ->12,172 ('12,172') votes={12172: 2, 12142: 1}
+23:56:53    [OCR]   Band 4 Y=496-505 ->358,120 ('358.12K') votes={358120: 3, 12000: 1, 398120: 1}
+23:56:53    [OCR]   HSV scan found 4 power values
+23:56:53    [OCR]   [LVL] Power-guided: 4 positions (offset=16px up)
+23:56:54    [OCR]   [LVL] Pos 1 Y=411 -> L96 (all: {96: 6, 6: 2}, strict: {96: 6})
+23:56:55    [OCR]   [LVL] Pos 2 Y=759 -> L56 (all: {56: 11, 4: 1}, strict: {56: 6})
+23:56:55    [OCR]   [LVL] Pos 3 Y=1107 -> L60 (all: {60: 6}, strict: {60: 3})
+23:56:56    [OCR]   [LVL] Pos 4 Y=1452 -> L98 (all: {59: 1, 98: 4, 3: 1, 8: 2}, strict: {59: 1, 98: 3, 3: 1})
+23:56:56    [OCR]   [LVL] Found 4 player levels
+23:56:56        + 3 new after scroll 2 (4 visible)
+23:56:59    [OCR]   Dual-column projection found 5 'Team Power:' rows
+23:56:59    [OCR]   Band 1 Y=62-81 -> no valid read
+23:57:00    [OCR]   Band 2 Y=141-149 ->145,240 ('145.24K') votes={145240: 3, 143240: 1}
+23:57:00    [OCR]   Band 3 Y=256-265 ->12,172 ('12,172') votes={12172: 3, 12142: 2, 1212: 1}
+23:57:01    [OCR]   Band 4 Y=372-380 ->358,120 ('358.12K') votes={358120: 3, 31000: 1, 2000: 1, 398120: 1}
+23:57:01    [OCR]   Band 5 Y=487-496 ->281,300 ('281.3K') votes={281300: 4, 221300: 1, 21300: 1}
+23:57:01    [OCR]   HSV scan found 4 power values
+23:57:01    [OCR]   [LVL] Power-guided: 4 positions (offset=16px up)
+23:57:02    [OCR]   [LVL] Pos 1 Y=387 -> L56 (all: {56: 11, 36: 1}, strict: {56: 5, 36: 1})
+23:57:03    [OCR]   [LVL] Pos 2 Y=732 -> REJECTED (low confidence: 1 reads, 0 strict, values={60: 1})
+23:57:03    [OCR]   [LVL] Pos 2 Y=732 -> no valid read (0 reads)
+23:57:04    [OCR]   [LVL] Pos 3 Y=1080 -> L98 (all: {8: 3, 99: 1, 98: 5, 3: 1}, strict: {8: 2, 99: 1, 98: 3})
+23:57:05    [OCR]   [LVL] Pos 4 Y=1425 -> L70 (all: {70: 6, 1: 1, 20: 1, 7: 1, 10: 1}, strict: {70: 2, 1: 1, 20: 1})
+23:57:05    [OCR]   [LVL] Found 3 player levels
+23:57:05        + 1 new after scroll 3 (4 visible)
+23:57:08    [OCR]   Dual-column projection found 5 'Team Power:' rows
+23:57:08    [OCR]   Band 1 Y=62-81 -> no valid read
+23:57:09    [OCR]   Band 2 Y=140-149 ->145,240 ('145.24K') votes={145240: 2, 149240: 1, 148240: 1}
+23:57:09    [OCR]   Band 3 Y=256-265 ->12,172 ('12,172') votes={12172: 2, 12142: 2, 1212: 2}
+23:57:10    [OCR]   Band 4 Y=372-380 ->358,120 ('358.12K') votes={358120: 3, 312000: 1, 12000: 1, 398120: 1}
+23:57:10    [OCR]   Band 5 Y=487-496 ->281,300 ('281.3K') votes={281300: 4, 221300: 1, 21300: 1}
+23:57:10    [OCR]   HSV scan found 4 power values
+23:57:10    [OCR]   [LVL] Power-guided: 4 positions (offset=16px up)
+23:57:11    [OCR]   [LVL] Pos 1 Y=384 -> L56 (all: {56: 11, 36: 1}, strict: {56: 5, 36: 1})
+23:57:12    [OCR]   [LVL] Pos 2 Y=732 -> REJECTED (low confidence: 1 reads, 0 strict, values={60: 1})
+23:57:12    [OCR]   [LVL] Pos 2 Y=732 -> no valid read (0 reads)
+23:57:13    [OCR]   [LVL] Pos 3 Y=1080 -> L98 (all: {8: 1, 99: 1, 98: 6, 93: 1, 3: 1}, strict: {8: 1, 99: 1, 98: 3, 93: 1})
+23:57:14    [OCR]   [LVL] Pos 4 Y=1425 -> L70 (all: {70: 6, 1: 1, 20: 1, 7: 1, 10: 1}, strict: {70: 2, 1: 1, 20: 1})
+23:57:14    [OCR]   [LVL] Found 3 player levels
+23:57:14      268,630
+23:57:14    Targets (weakest first): 1
+23:57:14    Filter (power ≤ 300,000 AND level ≤ L65 OR power ≤ 130,000): 6 → 1
+23:57:14    Filtered out 4 already defeated
+23:57:14      Sorted: 12,172 (L60), 145,240 (L56), 171,570 (L73), 191,160 (L63), 211,710 (L100), 268,630 (L63), 277,420 (L77), 281,300 (L70), 295,480 (L96), 358,120 (L98)
+23:57:14    [V2] Fluid scan complete: 10 total, 6 available
+23:57:14    [V2] End of list reached
+23:57:14        All duplicates (x1)
+23:57:17      At top (fling)
+23:57:17      Snapshot 2nd opponent (607x98px)
+23:57:17    [1/1] Targeting Power 268,630
+23:57:17      List check #1: match=1.0000
+23:57:18      Searching for Power 268,630...
+23:57:21      At top (fling)
+23:57:21    [OCR]   Dual-column projection found 4 'Team Power:' rows
+23:57:22    [OCR]   Band 1 Y=145-154 ->268,630 ('268.63K') votes={268630: 4, 26630: 1}
+23:57:22    [OCR]   Band 2 Y=261-270 ->211,710 ('211.71K') votes={211710: 2, 211410: 2}
+23:57:22    [OCR]   Band 3: WARNING no majority after 4 reads ({24000: 1, 2000: 1, 277420: 1, 247420: 1})
+23:57:22    [OCR]   Band 3 Y=377-385 ->277,420 ('277.42K') votes={24000: 1, 2000: 1, 277420: 1, 247420: 1}
+23:57:23    [OCR]   Band 4 Y=492-501 ->191,160 ('191.16K') votes={191160: 5, 131160: 1}
+23:57:23    [OCR]   HSV scan found 4 power values
+23:57:23      Found at y=317
+23:57:23      Clicking Battle at (2526, 577)
+23:57:56    Attack phase done: 1 battles, 0 not found, 0 skipped
+23:57:56      Battle 1 complete
+23:58:00    ┌─ CYCLE #2 (total battles: 1) ─┐
+23:58:00  
+23:58:00    Refreshing opponent list (free)...
+23:58:03    [V2] Fluid scanning opponent list...
+23:58:03  
+23:58:03      At top (fling)
+23:58:03      Debug frames → E:\Projects\Misc\Dreamer\debug
+23:58:03    [OCR]   Dual-column projection found 5 'Team Power:' rows
+23:58:04    [OCR]   Band 1 Y=67-77 -> no valid read
+23:58:04    [OCR]   Band 2 Y=145-154 ->288,910 ('288.91K') votes={288910: 4, 28571: 1}

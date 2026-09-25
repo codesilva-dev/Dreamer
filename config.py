@@ -30,6 +30,7 @@ TEMPLATE_LIMITED_OFFERS = os.path.join(TEMPLATES_DIR, 'LimitedOffers.png')
 TEMPLATE_SMALL_PACK = os.path.join(TEMPLATES_DIR, 'SmallPack.png')
 TEMPLATE_SMALL_PACK_2 = os.path.join(TEMPLATES_DIR, 'smallpack2.png')
 TEMPLATE_FREE_ICON = os.path.join(TEMPLATES_DIR, 'Free Icon.png')
+TEMPLATE_REG_PACK = os.path.join(TEMPLATES_DIR, 'regPack.png')
 TEMPLATE_JUNK_OFFER = os.path.join(TEMPLATES_DIR, 'junkoffer.png')
 TEMPLATE_CLOSE_OFFER = os.path.join(TEMPLATES_DIR, 'closeoffer.png')
 
@@ -39,6 +40,19 @@ TEMPLATE_UPGRADE_LVL = os.path.join(TEMPLATES_DIR, 'UpgradeLvl.png')
 
 # Gem templates
 TEMPLATE_COLLECT_GEM = os.path.join(TEMPLATES_DIR, 'collectGem.png')
+TEMPLATE_GEM_CLAIM = os.path.join(TEMPLATES_DIR, 'gemClaim.png')
+
+# Clan Boss templates
+TEMPLATE_CB_STAGES = os.path.join(TEMPLATES_DIR, 'CBStages.png')
+TEMPLATE_CB1 = os.path.join(TEMPLATES_DIR, 'CB1.png')
+
+# CB difficulty templates (user provides PNGs)
+TEMPLATE_CB_EASY = os.path.join(TEMPLATES_DIR, 'CBEasy.png')
+TEMPLATE_CB_NORMAL = os.path.join(TEMPLATES_DIR, 'CBNormal.png')
+TEMPLATE_CB_HARD = os.path.join(TEMPLATES_DIR, 'CBHard.png')
+TEMPLATE_CB_BRUTAL = os.path.join(TEMPLATES_DIR, 'CBBrutal.png')
+TEMPLATE_CB_NIGHTMARE = os.path.join(TEMPLATES_DIR, 'CBNightmare.png')
+TEMPLATE_CB_ULTRA_NIGHTMARE = os.path.join(TEMPLATES_DIR, 'CBUltraNightmare.png')
 
 # Menu templates
 TEMPLATE_CHECK_MENU = os.path.join(TEMPLATES_DIR, 'checkMenu.png')
@@ -51,6 +65,7 @@ TEMPLATE_FREE_DRAW = os.path.join(TEMPLATES_DIR, 'FreeDraw.png')
 # Playtime rewards templates
 TEMPLATE_ACCRUED_REWARDS = os.path.join(TEMPLATES_DIR, 'AccruedRewards.png')
 TEMPLATE_PLAYTIME_REWARD = os.path.join(TEMPLATES_DIR, 'playtimeReward.png')
+TEMPLATE_CLAIM_ALL_REWARDS = os.path.join(TEMPLATES_DIR, 'claimAllRewards.png')
 
 # Market templates
 TEMPLATE_FRESH_MARKET = os.path.join(TEMPLATES_DIR, 'freshMarket.png')
@@ -61,6 +76,7 @@ TEMPLATE_GET_SHARD = os.path.join(TEMPLATES_DIR, 'getShard.png')
 TEMPLATE_QUEST_ICON = os.path.join(TEMPLATES_DIR, 'questIcon.png')
 TEMPLATE_CLAIM_QUESTS = os.path.join(TEMPLATES_DIR, 'claimQuests.png')
 TEMPLATE_SUM3_CHAMPS = os.path.join(TEMPLATES_DIR, 'sum3Champs.png')
+TEMPLATE_DAILY_TAB = os.path.join(TEMPLATES_DIR, 'dailyTab.png')
 
 # Dungeon templates
 TEMPLATE_DUNGEONS = os.path.join(TEMPLATES_DIR, 'Dungeons.png')
@@ -76,6 +92,7 @@ TEMPLATE_IT_NO_KEY = os.path.join(TEMPLATES_DIR, 'ITNoKey.png')
 TEMPLATE_IT_NO_KEY_STAGES = os.path.join(TEMPLATES_DIR, 'ITNoKeyStages.png')
 TEMPLATE_IT_REPLAY = os.path.join(TEMPLATES_DIR, 'ITReplay.png')
 TEMPLATE_BASTION = os.path.join(TEMPLATES_DIR, 'bastion.png')
+TEMPLATE_SUP_RAID_OFF = os.path.join(TEMPLATES_DIR, 'SupRaidOff.png')
 
 # Summon templates
 TEMPLATE_SUMMON_PORTAL = os.path.join(TEMPLATES_DIR, 'summonPortal.png')
@@ -201,3 +218,13 @@ IRON_TWINS_SCROLL_REGION = {
 
 # Max scroll attempts to find the target stage
 IRON_TWINS_MAX_SCROLL_ATTEMPTS = 10
+
+# =============================================================================
+# Clan Boss Settings
+# =============================================================================
+
+# Default difficulty to fight
+CB_DIFFICULTY = 'ultranightmare'
+
+# Valid difficulties (ordered hardest to easiest, for future cascade logic)
+CB_DIFFICULTIES = ['ultranightmare', 'nightmare', 'brutal', 'hard', 'normal', 'easy']

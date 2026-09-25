@@ -3,7 +3,7 @@ Playtime Rewards — Collect all available playtime rewards.
 
 Flow:
   1. Click AccruedRewards icon on home screen
-  2. Click all playtimeReward notification badges
+  2. Click claimAllRewards button
   3. Click closeoffer (X) to close the rewards panel
 """
 
@@ -11,7 +11,7 @@ from natural_click import NaturalClick
 
 from config import (
     TEMPLATE_ACCRUED_REWARDS,
-    TEMPLATE_PLAYTIME_REWARD,
+    TEMPLATE_CLAIM_ALL_REWARDS,
     TEMPLATE_CLOSE_OFFER,
 )
 
@@ -45,7 +45,7 @@ class PlaytimeRewardsSequence:
 
             # Step 1: Click AccruedRewards icon
             found, _, _ = self.template_matcher.find_template(
-                TEMPLATE_ACCRUED_REWARDS, threshold=0.8
+                TEMPLATE_ACCRUED_REWARDS, threshold=0.89
             )
             if not found:
                 self.log('  AccruedRewards not found — skipping')
@@ -59,29 +59,21 @@ class PlaytimeRewardsSequence:
             if self.should_stop():
                 return False
 
-            # Step 2: Click all playtimeReward badges
-            collected = 0
-            for _ in range(20):
-                if self.should_stop():
-                    break
-
-                self.clicker.natural_delay(1.0)
-                found, _, _ = self.template_matcher.find_template(
-                    TEMPLATE_PLAYTIME_REWARD, threshold=0.8
-                )
-                if not found:
-                    break
-
+            # Step 2: Click Claim All Rewards
+            self.clicker.natural_delay(1.0)
+            found, _, _ = self.template_matcher.find_template(
+                TEMPLATE_CLAIM_ALL_REWARDS, threshold=0.8
+            )
+            if found:
                 self.template_matcher.find_and_click(
-                    TEMPLATE_PLAYTIME_REWARD, wait_after=2.0
+                    TEMPLATE_CLAIM_ALL_REWARDS, wait_after=2.0
                 )
-                collected += 1
-                self.log(f'  Reward #{collected} collected')
-
-            if collected:
-                self.log(f'  Playtime: {collected} reward(s) collected')
+                self.log('  Clicked Claim All Rewards')
             else:
-                self.log('  No playtime rewards available')
+                self.log('  Claim All Rewards not found — no rewards available')
+
+            if self.should_stop():
+                return False
 
             # Step 3: Close the panel
             self.clicker.natural_delay(0.5)

@@ -9,7 +9,7 @@ from natural_click import NaturalClick
 
 from config import (
     TEMPLATE_QUEST_ICON, TEMPLATE_CLAIM_QUESTS, TEMPLATE_BACK,
-    TEMPLATE_SUM3_CHAMPS,
+    TEMPLATE_SUM3_CHAMPS, TEMPLATE_DAILY_TAB,
 )
 from sequences.sum3 import Sum3Sequence
 
@@ -66,6 +66,22 @@ class QuestsSequence:
                     TEMPLATE_QUEST_ICON, wait_after=1.5
                 )
                 self.log('  Clicked Quest Icon')
+
+                if self.should_stop():
+                    return False
+
+                # Step 1b: Click the Daily tab
+                self.clicker.natural_delay(1.0)
+                found, _, _ = self.template_matcher.find_template(
+                    TEMPLATE_DAILY_TAB, threshold=0.8
+                )
+                if found:
+                    self.template_matcher.find_and_click(
+                        TEMPLATE_DAILY_TAB, wait_after=1.5
+                    )
+                    self.log('  Clicked Daily tab')
+                else:
+                    self.log('  Daily tab not found (may already be selected)')
 
                 if self.should_stop():
                     return False

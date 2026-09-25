@@ -27,9 +27,16 @@ def _get_file_logger():
 
     # Avoid duplicate handlers if called more than once
     if not _file_logger.handlers:
-        handler = logging.FileHandler(filepath, mode='w', encoding='utf-8')
-        handler.setFormatter(logging.Formatter('%(asctime)s  %(message)s', datefmt='%H:%M:%S'))
-        _file_logger.addHandler(handler)
+        fmt = logging.Formatter('%(asctime)s  %(message)s', datefmt='%H:%M:%S')
+
+        file_handler = logging.FileHandler(filepath, mode='w', encoding='utf-8')
+        file_handler.setFormatter(fmt)
+        _file_logger.addHandler(file_handler)
+
+        # Also log to stdout (visible when running from terminal)
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(fmt)
+        _file_logger.addHandler(console_handler)
 
     return _file_logger
 
