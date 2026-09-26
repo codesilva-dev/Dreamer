@@ -8,7 +8,7 @@ import pyautogui
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from pynput import keyboard as pynput_keyboard
-from PyQt5.QtWidgets import (QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QTextEdit, QMessageBox, QGroupBox, QDoubleSpinBox, QSpinBox, QComboBox, QCheckBox, QInputDialog, QTabWidget, QGridLayout)
+from PyQt5.QtWidgets import (QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QTextEdit, QMessageBox, QGroupBox, QDoubleSpinBox, QSpinBox, QComboBox, QCheckBox, QInputDialog, QTabWidget, QGridLayout, QLineEdit)
 from PyQt5.QtCore import Qt, QTimer
 
 from window_capture import WindowCapture
@@ -291,6 +291,12 @@ class DreamerApp(QWidget):
         self.cb_difficulty_combo.setToolTip('Clan Boss difficulty')
         self.cb_difficulty_combo.currentTextChanged.connect(self._on_cb_difficulty_changed)
         cb_config.addWidget(self.cb_difficulty_combo)
+        cb_config.addWidget(QLabel('Player Name:'))
+        self.cb_player_name_input = QLineEdit()
+        self.cb_player_name_input.setText(config.CB_PLAYER_NAME)
+        self.cb_player_name_input.setToolTip('Your in-game name for leaderboard check')
+        self.cb_player_name_input.textChanged.connect(self._on_cb_player_name_changed)
+        cb_config.addWidget(self.cb_player_name_input)
         cb_config.addStretch()
         runs_grid.addLayout(cb_config, 4, 1, 1, 3)
 
@@ -462,6 +468,10 @@ class DreamerApp(QWidget):
         self.add_template_btn.clicked.connect(self.start_region_selection)
         template_layout.addWidget(self.add_template_btn)
 
+        self.add_window_btn = QPushButton('Add Window Region')
+        self.add_window_btn.clicked.connect(self.start_window_region_selection)
+        template_layout.addWidget(self.add_window_btn)
+
         self.image_label = QLabel('Click "Add Template" to capture a screen region')
         self.image_label.setAlignment(Qt.AlignCenter)
         template_layout.addWidget(self.image_label)
@@ -535,6 +545,9 @@ class DreamerApp(QWidget):
             val = settings['cb_difficulty']
             if val in config.CB_DIFFICULTIES:
                 self.cb_difficulty_combo.setCurrentText(val)
+        if 'cb_player_name' in settings:
+            val = settings['cb_player_name']
+            self.cb_player_name_input.setText(val)
 
         # Daily state
         if 'daily_state' in settings:
@@ -562,6 +575,7 @@ class DreamerApp(QWidget):
             'iron_twins_stage': config.IRON_TWINS_STAGE,
             'iron_twins_macro': self.it_macro_combo.currentText(),
             'cb_difficulty': config.CB_DIFFICULTY,
+            'cb_player_name': config.CB_PLAYER_NAME,
             'daily_state': ds_serialized,
         }
         try:
@@ -658,6 +672,12 @@ class DreamerApp(QWidget):
         self.log(f'Clan Boss: difficulty = {text}')
         self._save_settings()
 
+    def _on_cb_player_name_changed(self, text):
+        """Update the config module's CB_PLAYER_NAME at runtime."""
+        config.CB_PLAYER_NAME = text
+        self.log(f'Clan Boss: player name = {text}')
+        self._save_settings()
+
     def start_region_selection(self):
         """Start region selection mode"""
         try:
@@ -703,7 +723,100 @@ class DreamerApp(QWidget):
             show_error(self, f'Failed to save template: {e}')
     
     # show_preview now handled by utils.show_preview
-    
+
+    def start_window_region_selection(self):
+        """Start window region selection mode"""
+        try:
+            # Capture the game window first
+            self.window_capture.get_window()
+            frame = self.window_capture.capture()
+            self.log('Window captured - select the region you want to define')
+
+            # Hide main window and show selection window
+            self.hide()
+            self.selection_window = RegionSelectionWindow(self, frame, is_window_mode=True)
+            self.selection_window.show()
+        except Exception as e:
+            QMessageBox.critical(self, 'Error', f'Failed to capture window: {e}')
+
+    def save_window_region(self, region_coords):
+        """Save window region coordinates to windows.json"""
+        try:
+            from PyQt5.QtWidgets import QInputDialog
+            x, y, width, height = region_coords
+            self.log(f'Window region captured: x={x}, y={y}, w={width}, h={height}')
+            self.show()
+            self.raise_()
+            self.activateWindow()
+            QApplication.processEvents()
+
+            name, ok = QInputDialog.getText(self, 'Save Window Region', 'Enter region name (e.g., cb_victory_damage):')
+            if ok and name:
+                # Load existing windows
+                windows_file = 'windows.json'
+                windows = {}
+                if os.path.exists(windows_file):
+                    with open(windows_file, 'r') as f:
+                        windows = json.load(f)
+
+                # Get window dimensions for relative coordinates
+                _, _, win_width, win_height = self.window_capture.window_info
+
+                # Calculate relative coordinates (as percentages)
+                x_rel = x / win_width
+                y_rel = y / win_height
+                width_rel = width / win_width
+                height_rel = height / win_height
+
+                # Store both absolute and relative coordinates
+                region_data = {
+                    'absolute': {
+                        'x': x,
+                        'y': y,
+                        'width': width,
+                        'height': height
+                    },
+                    'relative': {
+                        'x': round(x_rel, 4),
+                        'y': round(y_rel, 4),
+                        'width': round(width_rel, 4),
+                        'height': round(height_rel, 4)
+                    },
+                    'window_size': {
+                        'width': win_width,
+                        'height': win_height
+                    }
+                }
+
+                windows[name] = region_data
+
+                # Save to file
+                with open(windows_file, 'w') as f:
+                    json.dump(windows, f, indent=2)
+
+                self.log(f'✓ Window region saved: {name}')
+                self.log(f'  Absolute: x={x}, y={y}, width={width}, height={height}')
+                self.log(f'  Relative: x={x_rel:.4f}, y={y_rel:.4f}, width={width_rel:.4f}, height={height_rel:.4f}')
+
+                code_snippet = f"""Region '{name}' saved to windows.json!
+
+Relative coordinates (recommended):
+_, _, win_width, win_height = self.window_capture.window_info
+x = int(win_width * {x_rel:.4f})
+y = int(win_height * {y_rel:.4f})
+width = int(win_width * {width_rel:.4f})
+height = int(win_height * {height_rel:.4f})
+region = (x, y, width, height)
+"""
+                show_info(self, code_snippet)
+            else:
+                self.log('Window region save cancelled')
+        except Exception as e:
+            self.log(f'✗ Error saving window region: {e}')
+            import traceback
+            traceback.print_exc()
+            show_error(self, f'Failed to save window region: {e}')
+
     # ─── Run Methods ─────────────────────────────────────────────────
 
     def run_classic_arena(self):

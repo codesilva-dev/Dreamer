@@ -4,14 +4,20 @@ from PyQt5.QtCore import Qt, QRect, QPoint
 
 class RegionSelectionWindow(QWidget):
     """Window for selecting region from a captured screenshot"""
-    def __init__(self, parent, frame):
+    def __init__(self, parent, frame, is_window_mode=False):
         super().__init__()
         self.parent_app = parent
         self.frame = frame
+        self.is_window_mode = is_window_mode  # True for window regions, False for templates
         self.begin = QPoint()
         self.end = QPoint()
         self.is_selecting = False
-        self.setWindowTitle('Select Region - Click and drag to select, press Enter to save, Esc to cancel')
+
+        if is_window_mode:
+            self.setWindowTitle('Select Window Region - Click and drag to select, press Enter to save, Esc to cancel')
+        else:
+            self.setWindowTitle('Select Region - Click and drag to select, press Enter to save, Esc to cancel')
+
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
         height, width, channel = frame.shape
         bytes_per_line = 3 * width
@@ -58,8 +64,14 @@ class RegionSelectionWindow(QWidget):
             self.parent_app.activateWindow()
             if rect.width() > 10 and rect.height() > 10:
                 x, y, w, h = rect.x(), rect.y(), rect.width(), rect.height()
-                selected_region = self.frame[y:y+h, x:x+w]
-                self.parent_app.save_template_region(selected_region)
+
+                if self.is_window_mode:
+                    # Save window region coordinates
+                    self.parent_app.save_window_region((x, y, w, h))
+                else:
+                    # Save template image
+                    selected_region = self.frame[y:y+h, x:x+w]
+                    self.parent_app.save_template_region(selected_region)
             else:
                 self.parent_app.log('Selection too small, cancelled')
         except Exception as e:
@@ -73,10 +85,16 @@ class RegionSelectionWindow(QWidget):
             rect = QRect(self.begin, self.end).normalized()
             if rect.width() > 10 and rect.height() > 10:
                 x, y, w, h = rect.x(), rect.y(), rect.width(), rect.height()
-                selected_region = self.frame[y:y+h, x:x+w]
                 self.close()
                 self.parent_app.show()
-                self.parent_app.save_template_region(selected_region)
+
+                if self.is_window_mode:
+                    # Save window region coordinates
+                    self.parent_app.save_window_region((x, y, w, h))
+                else:
+                    # Save template image
+                    selected_region = self.frame[y:y+h, x:x+w]
+                    self.parent_app.save_template_region(selected_region)
             else:
                 self.parent_app.log('Selection too small, cancelled')
                 self.close()

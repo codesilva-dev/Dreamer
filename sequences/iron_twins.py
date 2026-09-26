@@ -399,7 +399,7 @@ class IronTwinsSequence:
 
             # Check for no keys first (takes priority)
             found, _, _ = self.template_matcher.find_template(
-                TEMPLATE_IT_NO_KEY, threshold=0.8
+                TEMPLATE_IT_NO_KEY, threshold=0.97
             )
             if found:
                 elapsed = int(time.time() - start)

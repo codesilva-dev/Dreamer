@@ -15,6 +15,8 @@ TEMPLATE_CLASSIC_ARENA = os.path.join(TEMPLATES_DIR, 'Classic Arena.png')
 TEMPLATE_ARENA_BATTLE_BUTTON = os.path.join(TEMPLATES_DIR, 'ArenaBattleButton.png')
 TEMPLATE_START_FIGHT = os.path.join(TEMPLATES_DIR, 'Start Fight.png')
 TEMPLATE_BATTLE_COMPLETE = os.path.join(TEMPLATES_DIR, 'Battle Complete.png')
+TEMPLATE_CONTINUE = os.path.join(TEMPLATES_DIR, 'continue.png')
+TEMPLATE_CB_VIC_SCREEN = os.path.join(TEMPLATES_DIR, 'CBVicScreen.png')
 TEMPLATE_RETURN_ARENA = os.path.join(TEMPLATES_DIR, 'Return Arena.png')
 TEMPLATE_FREE_REFRESH = os.path.join(TEMPLATES_DIR, 'Free Refresh.png')
 TEMPLATE_PAY_REFRESH = os.path.join(TEMPLATES_DIR, 'Pay Refresh.png')
@@ -45,6 +47,7 @@ TEMPLATE_GEM_CLAIM = os.path.join(TEMPLATES_DIR, 'gemClaim.png')
 # Clan Boss templates
 TEMPLATE_CB_STAGES = os.path.join(TEMPLATES_DIR, 'CBStages.png')
 TEMPLATE_CB1 = os.path.join(TEMPLATES_DIR, 'CB1.png')
+TEMPLATE_CB_RED_SWORD = os.path.join(TEMPLATES_DIR, 'CBRedSword.png')
 
 # CB difficulty templates (user provides PNGs)
 TEMPLATE_CB_EASY = os.path.join(TEMPLATES_DIR, 'CBEasy.png')
@@ -66,6 +69,15 @@ TEMPLATE_FREE_DRAW = os.path.join(TEMPLATES_DIR, 'FreeDraw.png')
 TEMPLATE_ACCRUED_REWARDS = os.path.join(TEMPLATES_DIR, 'AccruedRewards.png')
 TEMPLATE_PLAYTIME_REWARD = os.path.join(TEMPLATES_DIR, 'playtimeReward.png')
 TEMPLATE_CLAIM_ALL_REWARDS = os.path.join(TEMPLATES_DIR, 'claimAllRewards.png')
+TEMPLATE_PT1 = os.path.join(TEMPLATES_DIR, 'PT1.png')
+TEMPLATE_PT2 = os.path.join(TEMPLATES_DIR, 'PT2.png')
+TEMPLATE_PT3 = os.path.join(TEMPLATES_DIR, 'PT3.png')
+TEMPLATE_PT4 = os.path.join(TEMPLATES_DIR, 'PT4.png')
+TEMPLATE_PT5 = os.path.join(TEMPLATES_DIR, 'PT5.png')
+TEMPLATE_PT6 = os.path.join(TEMPLATES_DIR, 'PT6.png')
+TEMPLATE_PT7 = os.path.join(TEMPLATES_DIR, 'PT7.png')
+TEMPLATE_PT8 = os.path.join(TEMPLATES_DIR, 'PT8.png')
+TEMPLATE_PT9 = os.path.join(TEMPLATES_DIR, 'PT9.png')
 
 # Market templates
 TEMPLATE_FRESH_MARKET = os.path.join(TEMPLATES_DIR, 'freshMarket.png')
@@ -83,6 +95,9 @@ TEMPLATE_DUNGEONS = os.path.join(TEMPLATES_DIR, 'Dungeons.png')
 
 # Dungeon stage battle button (text-only crop, reusable across all bosses)
 TEMPLATE_PVE_BATTLE = os.path.join(TEMPLATES_DIR, 'PVEBattle.png')
+TEMPLATE_START = os.path.join(TEMPLATES_DIR, 'start.png')
+TEMPLATE_CB_QB_TRUE = os.path.join(TEMPLATES_DIR, 'CB_QB_True.png')
+TEMPLATE_CB_NO_KEY = os.path.join(TEMPLATES_DIR, 'CBNoKey.png')
 
 # Iron Twins templates
 TEMPLATE_IRON_TWINS = os.path.join(TEMPLATES_DIR, 'ironTwins.png')
@@ -223,8 +238,42 @@ IRON_TWINS_MAX_SCROLL_ATTEMPTS = 10
 # Clan Boss Settings
 # =============================================================================
 
-# Default difficulty to fight
+# Default difficulty to fight (starting difficulty)
 CB_DIFFICULTY = 'ultranightmare'
 
-# Valid difficulties (ordered hardest to easiest, for future cascade logic)
+# Player name to look for on leaderboard
+CB_PLAYER_NAME = 'YourNameHere'  # Set this to your in-game name
+
+# Valid difficulties (ordered hardest to easiest for cascading)
 CB_DIFFICULTIES = ['ultranightmare', 'nightmare', 'brutal', 'hard', 'normal', 'easy']
+
+# Max damage thresholds for top chest rewards (damage needed per difficulty)
+CB_MAX_DAMAGE_THRESHOLDS = {
+    'ultranightmare': 70_280_000,  # 70.28M
+    'nightmare': 39_170_000,        # 39.17M
+    'brutal': 21_700_000,           # 21.7M
+    'hard': 11_650_000,             # 11.65M
+    'normal': 3_640_000,            # 3.64M
+    'easy': 1_150_000,              # 1.15M
+}
+
+# Scrolling region for difficulty list (right side of screen)
+CB_SCROLL_REGION = {
+    'x_center': 0.75,   # Right side of screen for difficulty list
+    'y_start': 0.35,    # Scroll destination (higher up)
+    'y_end': 0.75,      # Scroll start (lower down)
+}
+
+# Scrolling region for leaderboard (left side of screen)
+CB_LEADERBOARD_SCROLL_REGION = {
+    'x_center': 0.25,   # Left side of screen for leaderboard
+    'y_start': 0.35,    # Scroll destination (higher up)
+    'y_end': 0.75,      # Scroll start (lower down)
+}
+
+# Max scroll attempts
+CB_MAX_SCROLL_ATTEMPTS = 6
+
+# Timing
+CB_SCROLL_DELAY = 1.0  # Delay after scrolling to let screen settle
+CB_BATTLE_TIMEOUT = 600  # Max seconds to wait for battle (10 min)

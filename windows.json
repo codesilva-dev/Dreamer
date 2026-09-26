@@ -1,0 +1,56 @@
+{
+  "DamgeDealt": {
+    "absolute": {
+      "x": 576,
+      "y": 196,
+      "width": 246,
+      "height": 66
+    },
+    "relative": {
+      "x": 0.3322,
+      "y": 0.2788,
+      "width": 0.1419,
+      "height": 0.0939
+    },
+    "window_size": {
+      "width": 1734,
+      "height": 703
+    }
+  },
+  "CBNoKeyRegion": {
+    "absolute": {
+      "x": 1389,
+      "y": 33,
+      "width": 108,
+      "height": 39
+    },
+    "relative": {
+      "x": 0.801,
+      "y": 0.0469,
+      "width": 0.0623,
+      "height": 0.0555
+    },
+    "window_size": {
+      "width": 1734,
+      "height": 703
+    }
+  },
+  "CB_KeyRefresh": {
+    "absolute": {
+      "x": 1409,
+      "y": 85,
+      "width": 74,
+      "height": 26
+    },
+    "relative": {
+      "x": 0.8125,
+      "y": 0.1209,
+      "width": 0.0427,
+      "height": 0.037
+    },
+    "window_size": {
+      "width": 1734,
+      "height": 703
+    }
+  }
+}

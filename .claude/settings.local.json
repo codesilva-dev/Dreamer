@@ -3,7 +3,8 @@
     "allow": [
       "Bash(python -c:*)",
       "Bash(pip install:*)",
-      "Bash(ls -la \"e:\\\\Projects\\\\Misc\\\\Dreamer\\\\templates\"\" | grep -i \"cb|clan \")"
+      "Bash(ls -la \"e:\\\\Projects\\\\Misc\\\\Dreamer\\\\templates\"\" | grep -i \"cb|clan \")",
+      "Bash(ls:*)"
     ]
   }
 }
