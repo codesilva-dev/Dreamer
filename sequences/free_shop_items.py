@@ -14,6 +14,7 @@ In DRY RUN mode, moves mouse to claim buttons without clicking.
 
 import pyautogui
 from natural_click import NaturalClick
+from utils import reset_home_screen_zoom
 
 from config import (
     CLICK_DELAY,
@@ -219,6 +220,10 @@ class FreeShopItemsSequence:
             self.template_matcher.find_and_click(
                 TEMPLATE_BACK, threshold=0.8, wait_after=1.5
             )
+
+            # Reset home screen zoom
+            self.log('  Resetting home screen zoom...')
+            reset_home_screen_zoom(self.window_capture, self.clicker)
 
             self.log(f'  Free Shop done — {total} claim(s)')
 

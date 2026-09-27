@@ -6,6 +6,7 @@ from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt
 
 import numpy as np
+import pyautogui
 
 # ── File logger setup ──────────────────────────────────────────────
 _file_logger = None
@@ -63,3 +64,35 @@ def show_error(parent, message):
 
 def show_info(parent, message):
     QMessageBox.information(parent, 'Info', message)
+
+def reset_home_screen_zoom(window_capture, clicker):
+    """
+    Reset home screen zoom by performing a drag upward.
+
+    This prevents zoom-related template matching issues by ensuring
+    the home screen is at the correct zoom level. Performs a hold-click
+    and drags upward ~500 pixels.
+
+    Args:
+        window_capture: WindowCapture instance to get window position
+        clicker: NaturalClick instance for delays
+    """
+    left, top, width, height = window_capture.window_info
+
+    # Click in the center of the screen
+    center_x = left + (width // 2)
+    center_y = top + (height // 2)
+
+    # Drag upward 500 pixels
+    end_y = center_y - 500
+
+    # Perform the drag
+    pyautogui.moveTo(center_x, center_y)
+    clicker.natural_delay(0.1)
+    pyautogui.mouseDown()
+    clicker.natural_delay(0.1)
+    # Drag upward with duration so game registers it
+    pyautogui.moveTo(center_x, end_y, duration=0.5)
+    clicker.natural_delay(0.2)
+    pyautogui.mouseUp()
+    clicker.natural_delay(0.5)

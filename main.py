@@ -1169,6 +1169,7 @@ region = (x, y, width, height)
         self.stop_requested = False
         self.daily_loop_cycle = 0
         self.daily_loop_task_index = 0
+        self.arena_tokens_exhausted = False  # Track arena completion status
         self.daily_loop_btn.setText('Stop Daily Loop')
         self.daily_loop_btn.setStyleSheet('background-color: #ff4444; color: white; font-weight: bold;')
         self.daily_status_label.setText('Status: running')
@@ -1327,6 +1328,18 @@ region = (x, y, width, height)
 
         cycle = self.daily_loop_cycle
 
+        # Check if arena still needs completion
+        arena_incomplete = not getattr(self, 'arena_tokens_exhausted', False)
+
+        if arena_incomplete:
+            self.log('')
+            self.log(f'  Cycle {cycle} complete — Arena still has tokens, starting new cycle')
+            self.log('  (Will retry arena after completing other dailies)')
+            # Start next cycle immediately to retry arena
+            QTimer.singleShot(5000, self._daily_start_cycle)  # 5 second pause
+            return
+
+        # Arena complete - check loop setting
         if not self.daily_loop_hourly_cb.isChecked():
             self.log('')
             self.log(f'  Cycle {cycle} complete — "Loop every hour" is off, stopping')
@@ -1468,6 +1481,12 @@ region = (x, y, width, height)
 
     def _daily_classic_arena(self):
         """Navigate to Classic Arena and run the battle sequence."""
+        # Skip if arena tokens already exhausted
+        if getattr(self, 'arena_tokens_exhausted', False):
+            self._daily_log('')
+            self._daily_log('  Arena tokens exhausted — skipping')
+            return
+
         self._daily_log('')
         self._daily_log('  Navigating to Classic Arena...')
 
@@ -1498,7 +1517,16 @@ region = (x, y, width, height)
             self.text_recognizer, self._daily_log,
             stop_check=self.is_stop_requested
         )
-        v2.run()
+        # Use skip_refresh_wait=True so arena returns early when refresh unavailable
+        result = v2.run(skip_refresh_wait=True)
+
+        # Check if tokens are truly exhausted
+        if v2.tokens_exhausted:
+            self._daily_log('  Arena tokens exhausted — will not retry')
+            self.arena_tokens_exhausted = True
+        elif not result:
+            # No refresh available but still have tokens - will retry in next cycle
+            self._daily_log('  Arena needs refresh — will retry in next cycle')
 
     # ─── Auto Clicker Methods ───────────────────────────────────────────
 

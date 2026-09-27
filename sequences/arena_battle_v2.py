@@ -7,10 +7,13 @@ No stored scroll positions — purely reactive to what's visible.
 """
 
 import time
+import os
+import cv2
 import pyautogui
 from natural_click import NaturalClick
 
 from config import (
+    SCRIPT_DIR,
     ARENA_SCAN_DELAY,
     ARENA_MAX_SCROLL_ATTEMPTS,
     ARENA_MAX_BATTLES,
@@ -85,13 +88,100 @@ class ArenaBattleRunner:
 
         return None, frozenset(all_seen)
 
+    def find_target_by_template(self, target_power):
+        """
+        Find target using template matching on saved power snapshot.
+
+        This is much more reliable than OCR - uses the exact power region
+        image saved during the initial scan.
+
+        Args:
+            target_power: int power value to find
+
+        Returns:
+            y_position (int) if found via template matching, None otherwise
+        """
+        # Load the template snapshot
+        snapshot_dir = os.path.join(SCRIPT_DIR, 'debug', 'arena_targets')
+        template_path = os.path.join(snapshot_dir, f'power_{target_power}.png')
+
+        if not os.path.exists(template_path):
+            # No snapshot saved for this target (might have been defeated already)
+            return None
+
+        template = cv2.imread(template_path)
+        if template is None:
+            return None
+
+        template_h, template_w = template.shape[:2]
+
+        # Capture current frame
+        frame = self.window_capture.capture()
+        if frame is None:
+            return None
+
+        # Get the power OCR region (where we'll search for the template)
+        roi_x, roi_y, roi_w, roi_h = self.scanner.get_fluid_ocr_region(frame)
+        search_region = frame[roi_y:roi_y + roi_h, roi_x:roi_x + roi_w]
+
+        # Template match
+        result = cv2.matchTemplate(search_region, template, cv2.TM_CCOEFF_NORMED)
+        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+
+        # High threshold for exact match (we saved this exact region)
+        if max_val >= 0.85:
+            # max_loc is (x, y) in the search_region
+            match_y_in_region = max_loc[1] + template_h // 2
+            # Convert to frame coordinates
+            y_pos = roi_y + match_y_in_region
+
+            self.log(f"    [TEMPLATE] Match score={max_val:.3f}, max_loc={max_loc}, template_h={template_h}")
+            self.log(f"    [TEMPLATE] ROI: roi_y={roi_y}, match_y_in_region={match_y_in_region}, final y_pos={y_pos}")
+
+            # Save debug image showing template match location
+            debug_frame = frame.copy()
+            # Draw rectangle around the matched template area (in search_region coords, convert to frame)
+            match_x_frame = roi_x + max_loc[0]
+            match_y_frame = roi_y + max_loc[1]
+            cv2.rectangle(debug_frame,
+                         (match_x_frame, match_y_frame),
+                         (match_x_frame + template_w, match_y_frame + template_h),
+                         (255, 0, 255), 3)  # Magenta rectangle around template match
+            cv2.circle(debug_frame, (match_x_frame + template_w // 2, y_pos), 10, (0, 255, 255), -1)  # Cyan dot at y_pos
+            debug_dir = os.path.join(SCRIPT_DIR, 'debug')
+            os.makedirs(debug_dir, exist_ok=True)
+            cv2.imwrite(os.path.join(debug_dir, 'arena_template_match.png'), debug_frame)
+
+            # VERIFY: Use OCR to confirm we found the right power value
+            # This prevents false matches on visually similar power displays
+            roi_frame = frame[roi_y:roi_y + roi_h, roi_x:roi_x + roi_w].copy()
+            powers = self.text_recognizer.find_team_powers_hsv(roi_frame)
+
+            # Check if target_power is in the visible powers near this Y position
+            tolerance = 30  # Allow 30px difference
+            found_powers = []
+            for p in powers:
+                p_y_frame = (p['y_position'] or 0) + roi_y
+                found_powers.append(f"{p['power']:,} at y={p_y_frame}")
+                if abs(p_y_frame - y_pos) <= tolerance and p['power'] == target_power:
+                    # OCR confirms this is the right target
+                    self.log(f"    [TEMPLATE] OCR confirmed: {p['power']:,} at y={p_y_frame} matches target {target_power:,}")
+                    return y_pos
+
+            # Template matched but OCR doesn't confirm - false positive
+            self.log(f"    [TEMPLATE] Match at y={y_pos} (score={max_val:.3f}) but OCR doesn't confirm")
+            self.log(f"    [TEMPLATE] OCR found: {', '.join(found_powers)}")
+            return None
+
+        return None
+
     def scroll_and_find(self, target_power):
         """
-        Search for a target by scanning from current position.
+        Search for a target by scrolling and using template matching.
 
-        First checks what's visible now, then scrolls down scanning.
-        If the bottom is reached without finding the target, wraps around
-        by scrolling to top and scanning downward again.
+        Strategy:
+        1. Try template matching first (fast, accurate ~99%)
+        2. If template not found, fall back to OCR (slower, less reliable)
 
         Uses fluid scrolls (broad, ~45% window height) for reliable movement.
 
@@ -101,10 +191,19 @@ class ArenaBattleRunner:
         # Start from the top
         self.scanner.scroll_to_top_fast()
 
-        # Check visible area at top
-        y_pos, _ = self.find_target_on_screen(target_power)
+        # Check visible area at top using template matching first
+        y_pos = self.find_target_by_template(target_power)
         if y_pos is not None:
+            self.log(f"    Found via template at top: y={y_pos}")
             return y_pos
+
+        # Fallback to OCR if template matching failed
+        y_pos, visible = self.find_target_on_screen(target_power)
+        if y_pos is not None:
+            self.log(f"    Found via OCR at top: y={y_pos} (visible: {sorted(visible)})")
+            return y_pos
+        else:
+            self.log(f"    Not at top (visible: {sorted(visible)})")
 
         # Scroll down scanning at each position
         for i in range(ARENA_MAX_SCROLL_ATTEMPTS):
@@ -112,8 +211,17 @@ class ArenaBattleRunner:
                 return None
 
             self.scanner._fluid_scroll_down()
-            y_pos, _ = self.find_target_on_screen(target_power)
+
+            # Try template matching first
+            y_pos = self.find_target_by_template(target_power)
             if y_pos is not None:
+                self.log(f"    Found via template after scroll {i+1}: y={y_pos}")
+                return y_pos
+
+            # Fallback to OCR
+            y_pos, visible = self.find_target_on_screen(target_power)
+            if y_pos is not None:
+                self.log(f"    Found via OCR after scroll {i+1}: y={y_pos} (visible: {sorted(visible)})")
                 return y_pos
 
         return None
@@ -127,6 +235,9 @@ class ArenaBattleRunner:
         Uses the LIVE y_position from the scan that just found the target.
         Verifies the button is orange (available) before clicking.
 
+        Args:
+            y_position: Y coordinate in FRAME coordinates (not screen coordinates)
+
         Returns:
             True if clicked, False if button is gray (defeated).
         """
@@ -138,14 +249,29 @@ class ArenaBattleRunner:
             return False
 
         left, top, win_w, win_h = self.scanner.get_window_dimensions()
-        frame_width = frame.shape[1]
+        frame_height, frame_width = frame.shape[:2]
 
-        button_x = left + int(frame_width * ARENA_BATTLE_BUTTON_X)
-        button_y = top + y_position + BUTTON_Y_OFFSET
+        # Calculate click position in frame coordinates
+        button_x_frame = int(frame_width * ARENA_BATTLE_BUTTON_X)
+        button_y_frame = y_position + BUTTON_Y_OFFSET
 
-        self.log(f"    Clicking Battle at ({button_x}, {button_y})")
+        # Convert to screen coordinates
+        button_x_screen = left + button_x_frame
+        button_y_screen = top + button_y_frame
 
-        pyautogui.moveTo(button_x, button_y, duration=0.3)
+        self.log(f"    Clicking Battle at screen ({button_x_screen}, {button_y_screen}) "
+                 f"[frame: ({button_x_frame}, {button_y_frame}), y_pos={y_position}]")
+
+        # Save debug image showing click position
+        debug_frame = frame.copy()
+        cv2.circle(debug_frame, (button_x_frame, button_y_frame), 15, (0, 0, 255), 3)  # Red circle at click
+        cv2.circle(debug_frame, (button_x_frame, y_position), 8, (0, 255, 0), 2)  # Green circle at power position
+        debug_dir = os.path.join(SCRIPT_DIR, 'debug')
+        os.makedirs(debug_dir, exist_ok=True)
+        debug_path = os.path.join(debug_dir, 'arena_battle_click.png')
+        cv2.imwrite(debug_path, debug_frame)
+
+        pyautogui.moveTo(button_x_screen, button_y_screen, duration=0.3)
         self.clicker.natural_delay(0.2)
         self.clicker.click()
 

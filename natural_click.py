@@ -42,18 +42,21 @@ class NaturalClick:
                  hold_min=DEFAULT_HOLD_MIN,
                  hold_median=DEFAULT_HOLD_MEDIAN,
                  hold_max=DEFAULT_HOLD_MAX,
-                 hold_sigma=DEFAULT_HOLD_SIGMA):
+                 hold_sigma=DEFAULT_HOLD_SIGMA,
+                 speed_multiplier=0.6):
         """
         Args:
             hold_min:    Minimum hold duration in seconds (hard floor).
             hold_median: Central tendency of hold durations.
             hold_max:    Maximum hold duration in seconds (hard ceiling).
             hold_sigma:  Standard deviation controlling spread around median.
+            speed_multiplier: Global speed multiplier (0.5 = 2x faster, 1.0 = normal speed)
         """
         self.hold_min = hold_min
         self.hold_median = hold_median
         self.hold_max = hold_max
         self.hold_sigma = hold_sigma
+        self.speed_multiplier = speed_multiplier
 
     def next_hold_duration(self):
         """
@@ -114,6 +117,9 @@ class NaturalClick:
         The result is always >= 50% of the target (never undershoots dangerously)
         so screen rendering still has time to finish.
 
+        80% of the time the delay will be faster (using speed_multiplier),
+        20% of the time it will be slower (using 1.0 - no multiplier).
+
         Args:
             target_delay: The intended delay in seconds.
 
@@ -123,18 +129,26 @@ class NaturalClick:
         if target_delay <= 0:
             return 0.0
 
+        # 80% fast, 20% slow distribution
+        if random.random() < 0.8:
+            # Fast: apply speed multiplier
+            scaled_delay = target_delay * self.speed_multiplier
+        else:
+            # Slow: no multiplier (normal speed)
+            scaled_delay = target_delay
+
         # Scale jitter proportionally to delay size
-        if target_delay < 0.3:
+        if scaled_delay < 0.3:
             jitter = random.gauss(0, 0.008)
-        elif target_delay < 1.0:
+        elif scaled_delay < 1.0:
             jitter = random.gauss(0, 0.025)
         else:
-            jitter = random.gauss(0, target_delay * 0.025)
+            jitter = random.gauss(0, scaled_delay * 0.025)
 
-        actual = target_delay + jitter
+        actual = scaled_delay + jitter
 
         # Never go below half the target or below zero
-        actual = max(target_delay * 0.5, actual)
+        actual = max(scaled_delay * 0.5, actual)
 
         time.sleep(actual)
         return round(actual, 4)
@@ -153,7 +167,7 @@ class NaturalClick:
 
 
 # Module-level default instance for convenience
-_default = NaturalClick()
+_default = NaturalClick(speed_multiplier=0.6)
 
 
 def natural_click(x=None, y=None, button='left'):

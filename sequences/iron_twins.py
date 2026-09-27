@@ -73,7 +73,7 @@ class IronTwinsSequence:
             start_y = top + int(height * IRON_TWINS_SCROLL_REGION['y_start'])
             end_y = top + int(height * IRON_TWINS_SCROLL_REGION['y_end'])
 
-        pyautogui.moveTo(center_x, start_y, duration=0.2)
+        pyautogui.moveTo(center_x, start_y)
         self.clicker.natural_delay(0.1)
         pyautogui.mouseDown()
         self.clicker.natural_delay(0.1)

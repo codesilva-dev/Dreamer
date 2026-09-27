@@ -43,15 +43,46 @@ class ArenaListScanner:
         self.clicker = NaturalClick()
         self._debug_dir = None
         self._debug_counter = 0
+        self._snapshot_dir = None
+
+    def _init_snapshot_dir(self):
+        """Create a fresh snapshot directory for power templates."""
+        snapshot_root = os.path.join(SCRIPT_DIR, 'debug', 'arena_targets')
+        # Clean out old snapshots from previous scan
+        if os.path.exists(snapshot_root):
+            for f in os.listdir(snapshot_root):
+                fp = os.path.join(snapshot_root, f)
+                if f.endswith('.png'):
+                    try:
+                        os.remove(fp)
+                    except OSError:
+                        pass
+        else:
+            os.makedirs(snapshot_root, exist_ok=True)
+        self._snapshot_dir = snapshot_root
+
+    def _cleanup_snapshots(self):
+        """Delete all snapshot templates (call when list refreshes)."""
+        # DEBUG MODE: Don't delete snapshots so we can inspect them
+        pass
+        # if self._snapshot_dir and os.path.exists(self._snapshot_dir):
+        #     for f in os.listdir(self._snapshot_dir):
+        #         fp = os.path.join(self._snapshot_dir, f)
+        #         if f.endswith('.png'):
+        #             try:
+        #                 os.remove(fp)
+        #             except OSError:
+        #                 pass
 
     def _init_debug_dir(self):
         """Create a fresh debug directory for this scan session."""
         debug_root = os.path.join(SCRIPT_DIR, 'debug')
         os.makedirs(debug_root, exist_ok=True)
-        # Clear previous debug frames
+        # Clear previous arena scan debug frames only (not battle click debug or other files)
+        arena_scan_prefixes = ['initial_top', 'scroll', 'level_region']
         for f in os.listdir(debug_root):
             fp = os.path.join(debug_root, f)
-            if f.endswith('.png'):
+            if f.endswith('.png') and any(f.startswith(prefix) for prefix in arena_scan_prefixes):
                 try:
                     os.remove(fp)
                 except OSError:
@@ -104,6 +135,71 @@ class ArenaListScanner:
         filename = f"{self._debug_counter:03d}_{label}.png"
         filepath = os.path.join(self._debug_dir, filename)
         cv2.imwrite(filepath, annotated)
+
+    def _should_save_snapshot(self, opponent):
+        """
+        Check if opponent meets filter criteria and should have a snapshot saved.
+
+        Uses the same filter logic as arena_sequence_v2 to avoid saving snapshots
+        for opponents we won't target.
+        """
+        from config import (
+            ARENA_MAX_OPPONENT_POWER,
+            ARENA_MAX_OPPONENT_LEVEL,
+            ARENA_OR_POWER,
+        )
+
+        power = opponent['power']
+        level = opponent.get('level')
+
+        # No filters configured - save all
+        if ARENA_MAX_OPPONENT_POWER <= 0 and ARENA_MAX_OPPONENT_LEVEL <= 0 and ARENA_OR_POWER <= 0:
+            return True
+
+        # Check primary condition: (power <= max_power AND level <= max_level)
+        passes_primary = True
+        if ARENA_MAX_OPPONENT_POWER > 0 and power > ARENA_MAX_OPPONENT_POWER:
+            passes_primary = False
+        if ARENA_MAX_OPPONENT_LEVEL > 0:
+            if level is None or level > ARENA_MAX_OPPONENT_LEVEL:
+                passes_primary = False
+
+        # Check OR condition: power <= or_power (regardless of level)
+        passes_or = ARENA_OR_POWER > 0 and power <= ARENA_OR_POWER
+
+        return passes_primary or passes_or
+
+    def _save_power_snapshot(self, frame, power_value, y_position):
+        """
+        Save a snapshot of the power region for template matching.
+
+        Crops a tight region around the "Team Power: XXX.XXK" text and saves it
+        with the power value as the filename for later template matching.
+
+        Args:
+            frame: Full game window frame
+            power_value: int power value (e.g., 220680)
+            y_position: Y coordinate of the power text (in frame coordinates)
+        """
+        if self._snapshot_dir is None:
+            return
+
+        # Get the power OCR region bounds
+        roi_x, roi_y, roi_w, roi_h = self.get_fluid_ocr_region(frame)
+
+        # Crop a band around the power text Y position
+        # Use a generous height (±25px) to ensure we capture the full text
+        band_height = 50
+        y_start = max(roi_y, y_position - band_height // 2)
+        y_end = min(roi_y + roi_h, y_position + band_height // 2)
+
+        # Use the full width of the OCR region
+        snapshot = frame[y_start:y_end, roi_x:roi_x + roi_w].copy()
+
+        # Save with power value as filename
+        filename = f"power_{power_value}.png"
+        filepath = os.path.join(self._snapshot_dir, filename)
+        cv2.imwrite(filepath, snapshot)
 
     def get_window_dimensions(self):
         """Get current window rect (left, top, width, height)."""
@@ -333,10 +429,12 @@ class ArenaListScanner:
             start_y = top + int(height * ARENA_LIST_REGION['y_start'])
             end_y = top + int(height * ARENA_LIST_REGION['y_end'])
 
-        pyautogui.moveTo(center_x, start_y, duration=0.2)
+        # Move to start position (instant)
+        pyautogui.moveTo(center_x, start_y)
         self.clicker.natural_delay(0.1)
         pyautogui.mouseDown()
         self.clicker.natural_delay(0.1)
+        # Drag to end position (with duration for game to register the drag)
         pyautogui.moveTo(center_x, end_y, duration=ARENA_SCROLL_DURATION)
         # Hold after drag to prevent inertia/fling
         self.clicker.natural_delay(0.5)
@@ -469,14 +567,14 @@ class ArenaListScanner:
         start_y = top + int(height * FLUID_SCROLL_REGION['y_start'])
         end_y = top + int(height * FLUID_SCROLL_REGION['y_end'])
 
-        pyautogui.moveTo(center_x, start_y, duration=0.15)
-        time.sleep(0.05)
+        pyautogui.moveTo(center_x, start_y)
+        self.clicker.natural_delay(0.05)
         pyautogui.mouseDown()
-        time.sleep(0.05)
+        self.clicker.natural_delay(0.05)
         pyautogui.moveTo(center_x, end_y, duration=FLUID_SCROLL_DRAG_DURATION)
-        time.sleep(0.7)
+        self.clicker.natural_delay(0.7)
         pyautogui.mouseUp()
-        time.sleep(0.3)
+        self.clicker.natural_delay(0.3)
 
     def _fling_to_top(self):
         """
@@ -492,8 +590,8 @@ class ArenaListScanner:
         release_y = top + int(height * 0.80)
         overshoot_y = top + int(height * 1.10)
 
-        pyautogui.moveTo(fling_x, start_y, duration=0.1)
-        time.sleep(0.05)
+        pyautogui.moveTo(fling_x, start_y)
+        self.clicker.natural_delay(0.05)
         pyautogui.mouseDown()
         # 0.25s — fast enough for strong flick, slow enough for game to track
         pyautogui.moveTo(fling_x, release_y, duration=0.25)
@@ -506,9 +604,9 @@ class ArenaListScanner:
         the list reaches the top even from a deep scroll position.
         """
         self._fling_to_top()
-        time.sleep(0.5)
+        self.clicker.natural_delay(0.5)
         self._fling_to_top()
-        time.sleep(1.0)  # Let inertia settle
+        self.clicker.natural_delay(1.0)  # Let inertia settle
         self.log(f"    At top (fling)")
 
     def _fluid_scroll_down(self):
@@ -523,17 +621,17 @@ class ArenaListScanner:
         start_y = top + int(height * FLUID_SCROLL_REGION['y_end'])
         end_y = top + int(height * FLUID_SCROLL_REGION['y_start'])
 
-        pyautogui.moveTo(center_x, start_y, duration=0.15)
-        time.sleep(0.05)
+        pyautogui.moveTo(center_x, start_y)
+        self.clicker.natural_delay(0.05)
         pyautogui.mouseDown()
-        time.sleep(0.05)
+        self.clicker.natural_delay(0.05)
         pyautogui.moveTo(center_x, end_y, duration=FLUID_SCROLL_DRAG_DURATION)
         # Hold after drag to prevent inertia/drift — longer hold for broader scroll
-        time.sleep(0.7)
+        self.clicker.natural_delay(0.7)
         pyautogui.mouseUp()
 
         # Let the list settle so OCR gets a clean frame
-        time.sleep(0.5)
+        self.clicker.natural_delay(0.5)
 
     def _scan_and_save_debug(self, label):
         """
@@ -580,13 +678,20 @@ class ArenaListScanner:
             is_available = self.check_battle_available(frame, y_pos)
             matched_level = self._match_level_to_power(p, levels, roi_y, lvl_y)
 
-            visible.append({
+            opponent = {
                 'power': p['power'],
                 'level': matched_level,
                 'y_position': y_pos,
                 'available': is_available,
                 'raw_text': p.get('raw_text', ''),
-            })
+            }
+            visible.append(opponent)
+
+            # Save power snapshot for template matching during targeting
+            # Only save snapshots for opponents that match our filter criteria
+            if is_available and p.get('y_position') is not None:
+                if self._should_save_snapshot(opponent):
+                    self._save_power_snapshot(frame, p['power'], y_pos)
 
         self._save_debug_frame(frame, visible, label=label)
         return visible
@@ -608,8 +713,9 @@ class ArenaListScanner:
         self.log("")
         self.log("  [V2] Fluid scanning opponent list...")
 
-        # Initialize debug frame saving
+        # Initialize debug frame saving and snapshot directory
         self._init_debug_dir()
+        self._init_snapshot_dir()
         self.log(f"    Debug frames → {self._debug_dir}")
 
         known_powers = set()

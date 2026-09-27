@@ -26,6 +26,7 @@ import pyautogui
 import numpy as np
 from natural_click import NaturalClick
 from text_recognition import TextRecognizer
+from utils import reset_home_screen_zoom
 
 try:
     import pytesseract
@@ -83,7 +84,7 @@ class ClanBossSequence:
             start_y = top + int(height * CB_SCROLL_REGION['y_start'])
             end_y = top + int(height * CB_SCROLL_REGION['y_end'])
 
-        pyautogui.moveTo(center_x, start_y, duration=0.2)
+        pyautogui.moveTo(center_x, start_y)
         self.clicker.natural_delay(0.1)
         pyautogui.mouseDown()
         self.clicker.natural_delay(0.1)
@@ -127,7 +128,7 @@ class ClanBossSequence:
             start_y = top + int(height * scroll_region['y_start'])
             end_y = top + int(height * scroll_region['y_end'])
 
-        pyautogui.moveTo(center_x, start_y, duration=0.2)
+        pyautogui.moveTo(center_x, start_y)
         self.clicker.natural_delay(0.1)
         pyautogui.mouseDown()
         self.clicker.natural_delay(0.1)
@@ -767,6 +768,11 @@ class ClanBossSequence:
                 text = pytesseract.image_to_string(gray, config=config).strip()
                 self.log(f'  [DEBUG] Key refresh OCR ({config}): "{text}"')
 
+                # Check for "FULL" - means keys are available
+                if 'FULL' in text.upper():
+                    self.log('  Keys are FULL - ready to battle')
+                    return 0  # Return 0 to indicate keys are available now
+
                 # Clean common OCR mistakes for time format
                 # Replace common misreads before the 'h' or 'm'
                 cleaned = text
@@ -908,21 +914,29 @@ class ClanBossSequence:
                 click_x = left + x + (width // 2)
                 click_y = top + y + (height // 2)
                 self.clicker.click(click_x, click_y)
-                time.sleep(1)  # Wait 1 second for dropdown to appear
+                self.clicker.natural_delay(1)  # Wait 1 second for dropdown to appear
 
                 # Read the refresh time
                 minutes = self._read_key_refresh_time()
-                if minutes:
-                    self._save_key_refresh_info(minutes)
-                else:
-                    self.log('  Could not read key refresh time')
 
                 # Click somewhere else to dismiss the refresh UI
                 left, top, width_full, height_full = self.window_capture.window_info
                 self.clicker.click(left + int(width_full * 0.5), top + int(height_full * 0.5))
                 self.clicker.natural_delay(0.5)
 
-                return False
+                # Handle the result
+                if minutes is not None and minutes == 0:
+                    # Keys are FULL - available now
+                    self.log('  Keys confirmed FULL - proceeding to battle')
+                    return True
+                elif minutes is not None and minutes > 0:
+                    # Keys not ready yet - save refresh time
+                    self._save_key_refresh_info(minutes)
+                    return False
+                else:
+                    # Could not read time - assume no keys
+                    self.log('  Could not read key refresh time')
+                    return False
 
         self.log('  Keys available')
         return True
@@ -967,16 +981,20 @@ class ClanBossSequence:
             found_back, _, _ = self.template_matcher.find_template(TEMPLATE_BACK, threshold=0.7)
             if not found_back:
                 self.log('  Back button no longer visible - at home')
-                return True
+                break
 
             self.log(f'  Clicking Back ({attempt + 1})...')
             if not self.template_matcher.find_and_click(TEMPLATE_BACK, threshold=0.7):
                 self.log('  Back button not found - may already be at home')
-                return True
+                break
 
             self.clicker.natural_delay(1.5)
+        else:
+            self.log('  Reached max attempts - assuming at home')
 
-        self.log('  Reached max attempts - assuming at home')
+        # Reset home screen zoom to prevent accidental zoom issues
+        self.log('  Resetting home screen zoom...')
+        reset_home_screen_zoom(self.window_capture, self.clicker)
         return True
 
     def _do_battle(self):
@@ -1047,7 +1065,7 @@ class ClanBossSequence:
                 return damage_dealt
 
             # Wait a bit before checking again
-            time.sleep(2)
+            self.clicker.natural_delay(2)
 
         self.log('  Battle did not complete within timeout')
         return False

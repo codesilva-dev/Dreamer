@@ -13,6 +13,8 @@ import time
 
 from sequences.arena_scanner_v2 import ArenaListScanner
 from sequences.arena_battle_v2 import ArenaBattleRunner
+from natural_click import NaturalClick
+from utils import reset_home_screen_zoom
 
 import config
 from config import (
@@ -40,6 +42,8 @@ class ClassicArenaSequenceV2:
         self.text_recognizer = text_recognizer
         self.log = log_func or print
         self.stop_check = stop_check
+        self.clicker = NaturalClick()
+        self.tokens_exhausted = False  # Track if arena tokens are exhausted
 
         # Shared scanner instance
         self.scanner = ArenaListScanner(
@@ -156,6 +160,10 @@ class ClassicArenaSequenceV2:
                 self.log(f'    Reached home (no more Back buttons)')
                 break
 
+        # Reset home screen zoom to prevent accidental zoom issues
+        self.log('    Resetting home screen zoom...')
+        reset_home_screen_zoom(self.window_capture, self.clicker)
+
     def _check_tokens_or_stop(self):
         """
         Check if we have arena tokens. If empty, try free refill.
@@ -183,13 +191,22 @@ class ClassicArenaSequenceV2:
         token_status = self.battle_runner.ensure_arena_tokens()
         if token_status == 'no_tokens':
             self.log('  Out of arena tokens — session complete')
+            self.tokens_exhausted = True
             return False
 
         # Try free refresh
         if self.click_refresh_list():
+            # Clean up old power snapshots since list has refreshed
+            self.scanner._cleanup_snapshots()
             return True
 
-        # No free refresh — wait for timer to reset
+        # No free refresh available
+        if getattr(self, 'skip_refresh_wait', False):
+            # Daily loop mode: return False to signal we should try again later
+            self.log('  No free refresh — will retry arena later in daily loop')
+            return False
+
+        # Standalone mode: wait for timer to reset
         wait_min = REFRESH_WAIT_SECONDS // 60
         self.log(f'  No free refresh — waiting {wait_min} minutes for reset...')
 
@@ -200,7 +217,7 @@ class ClassicArenaSequenceV2:
                 return False
 
             # Sleep in 30-second chunks so stop checks are responsive
-            time.sleep(30)
+            self.clicker.natural_delay(30)
             elapsed += 30
             remaining = (REFRESH_WAIT_SECONDS - elapsed) // 60
             if remaining > 0 and elapsed % 60 == 0:
@@ -210,6 +227,8 @@ class ClassicArenaSequenceV2:
 
         # Try refresh again after waiting
         if self.click_refresh_list():
+            # Clean up old power snapshots since list has refreshed
+            self.scanner._cleanup_snapshots()
             return True
 
         # Still no refresh — check tokens one more time
@@ -222,7 +241,7 @@ class ClassicArenaSequenceV2:
         self.log('  Refresh still unavailable — retrying...')
         return self.click_refresh_list()
 
-    def run(self, scan_only=False, test_single_attack=False, max_battles=None):
+    def run(self, scan_only=False, test_single_attack=False, max_battles=None, skip_refresh_wait=False):
         """
         Run the Classic Arena sequence.
 
@@ -230,7 +249,9 @@ class ClassicArenaSequenceV2:
             scan_only: Just scan and report, no attacks.
             test_single_attack: Scan and attack one target only.
             max_battles: Override per-cycle battle limit.
+            skip_refresh_wait: If True, return early when refresh unavailable instead of waiting 15min.
         """
+        self.skip_refresh_wait = skip_refresh_wait
         effective_max = max_battles or ARENA_MAX_BATTLES
 
         if scan_only:
@@ -340,6 +361,8 @@ class ClassicArenaSequenceV2:
                 # skip clicking refresh — just rescan the new list.
                 if results['exit_reason'] == 'list_changed':
                     self.log(f"  Game refreshed list — rescanning without using a refresh")
+                    # Clean up old power snapshots since list has changed
+                    self.scanner._cleanup_snapshots()
                     continue
 
                 # Phase 4: Refresh for next cycle

@@ -1,0 +1,36 @@
+# Debug files and folders
+debug/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Settings (local user settings should not be committed)
+.claude/settings.local.json
+
+# Temporary files
+*.tmp
+*.bak
