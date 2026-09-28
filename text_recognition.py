@@ -768,8 +768,9 @@ class TextRecognizer:
             # = 6 total reads. Best-of-3 majority picks the winner.
             ocr_configs = [
                 # (y_pad, scale, interpolation)
-                (5, 3, cv2.INTER_CUBIC),   # wide context, 3x
-                (2, 2, cv2.INTER_CUBIC),   # standard, 2x
+                # Increased padding to capture text at screen edges where it may be partially cut off
+                (8, 3, cv2.INTER_CUBIC),   # wide context, 3x
+                (5, 2, cv2.INTER_CUBIC),   # standard, 2x
             ]
 
             best_text = None
@@ -842,21 +843,49 @@ class TextRecognizer:
                         key=lambda r: (power_counts[r[0]], r[0])
                     )
                 else:
-                    # No majority — log warning, pick highest frequency
+                    # No majority — remove extreme outliers and use median
                     self._debug_log(f"  Band {band_idx + 1}: WARNING no majority "
                                     f"after {len(all_reads)} reads ({dict(power_counts)})")
-                    best_entry = max(
-                        unique_reads.values(),
-                        key=lambda r: (power_counts[r[0]], r[0])
-                    )
+
+                    # Get all power values sorted
+                    powers = sorted(unique_reads.keys())
+
+                    if len(powers) >= 3:
+                        # Remove only EXTREME outliers (10x+ difference from median)
+                        # This catches obvious OCR errors (5K when actual is 75K, or 493K when actual is 75K)
+                        # but preserves legitimate high-power opponents (500K is real in this game)
+                        import statistics
+                        median_val = statistics.median(powers)
+
+                        # Filter: keep values within 10x of median (in either direction)
+                        # Example: median=75K → keep 7.5K-750K, remove anything outside that range
+                        filtered_powers = [
+                            p for p in powers
+                            if 0.1 * median_val <= p <= 10 * median_val
+                        ]
+
+                        if filtered_powers:
+                            # After removing outliers, pick the HIGHEST value
+                            # (OCR tends to drop leading digits, so higher = more complete)
+                            best_power = max(filtered_powers)
+                            best_entry = unique_reads[best_power]
+                        else:
+                            # All filtered out (shouldn't happen), use middle value
+                            mid_idx = len(powers) // 2
+                            best_entry = unique_reads[powers[mid_idx]]
+                    else:
+                        # Less than 3 reads, pick the middle value
+                        median_power = powers[len(powers) // 2]
+                        best_entry = unique_reads[median_power]
 
                 best_power, best_text, debug_strip = best_entry
 
             # Debug: save band crop and annotate bands image
             if debug_dir:
                 # Save the strip from the standard crop for visual inspection
-                std_crop_y = max(0, band_top - 2)
-                std_crop_h = min(band_bot - band_top + 4, height - std_crop_y)
+                # Extend crop vertically to ensure full text capture (especially at screen edges)
+                std_crop_y = max(0, band_top - 5)
+                std_crop_h = min(band_bot - band_top + 10, height - std_crop_y)
                 std_strip = filtered[std_crop_y:std_crop_y + std_crop_h, number_start_x:]
                 status = 'hit' if best_power else 'miss'
                 cv2.imwrite(

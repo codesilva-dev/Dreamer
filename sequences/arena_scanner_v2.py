@@ -659,7 +659,11 @@ class ArenaListScanner:
         # Power Y is relative to the power ROI; level Y is relative to the
         # level ROI. Both ROIs share the same y_start and height, so the
         # Y positions map directly.
-        power_y_hints = [p['y_position'] for p in powers if p.get('y_position') is not None]
+        # Filter out any invalid entries (should be dicts, not ints)
+        power_y_hints = [
+            p['y_position'] for p in powers
+            if isinstance(p, dict) and p.get('y_position') is not None
+        ]
 
         levels = self.text_recognizer.find_player_levels_hsv(
             lvl_frame, debug_dir=self._debug_dir, debug_prefix=debug_prefix,
@@ -674,6 +678,10 @@ class ArenaListScanner:
         # Build opponent list with level matching
         visible = []
         for i, p in enumerate(powers):
+            # Skip invalid entries (should be dicts, not ints)
+            if not isinstance(p, dict):
+                continue
+
             y_pos = (p['y_position'] or (i * 100 + 50)) + roi_y
             is_available = self.check_battle_available(frame, y_pos)
             matched_level = self._match_level_to_power(p, levels, roi_y, lvl_y)
@@ -695,6 +703,42 @@ class ArenaListScanner:
 
         self._save_debug_frame(frame, visible, label=label)
         return visible
+
+    def _capture_scroll_snapshot(self):
+        """Capture a snapshot of the current scroll position for bottom detection."""
+        frame = self.window_capture.capture()
+        height, width = frame.shape[:2]
+
+        # Capture the middle 60% of the screen height (where opponents are visible)
+        y1 = int(height * 0.20)
+        y2 = int(height * 0.80)
+        x1 = int(width * 0.05)
+        x2 = int(width * 0.95)
+
+        return frame[y1:y2, x1:x2].copy()
+
+    def _is_at_bottom(self, previous_snapshot):
+        """
+        Check if we've reached the bottom of the list by comparing the current
+        visible area with the previous scroll position.
+
+        Returns True if the screen hasn't scrolled (we're at the bottom).
+        """
+        if previous_snapshot is None:
+            return False
+
+        current_snapshot = self._capture_scroll_snapshot()
+
+        # Template match to see if the visible area is the same
+        result = cv2.matchTemplate(current_snapshot, previous_snapshot, cv2.TM_CCOEFF_NORMED)
+        _, max_val, _, _ = cv2.minMaxLoc(result)
+
+        # High match score (>0.85) means the screen didn't scroll - we're at bottom
+        is_bottom = max_val > 0.85
+        if is_bottom:
+            self.log(f"      ! Bottom detected (scroll match: {max_val:.3f})")
+
+        return is_bottom
 
     def run_fluid_scan(self):
         """
@@ -752,14 +796,31 @@ class ArenaListScanner:
         self.log(f"      + {new_at_top} snatched at top")
 
         # Phase 2: Broad scroll down, OCR after settle, repeat
-        consecutive_dupes = 0       # Only counts scans that SAW opponents but found no new
         consecutive_empty = 0       # Counts scans that returned nothing (OCR failure)
         max_scrolls = ARENA_MAX_SCROLL_ATTEMPTS + 2
+        previous_snapshot = None
 
         for scroll_num in range(max_scrolls):
+            # Capture snapshot before scrolling
+            previous_snapshot = self._capture_scroll_snapshot()
+
             self._fluid_scroll_down()
 
+            # Scan current position (even if at bottom, might get better OCR)
             visible = self._scan_and_save_debug(f'scroll{scroll_num + 1}')
+
+            # Check if we're at the bottom (screen didn't move after scroll)
+            at_bottom = self._is_at_bottom(previous_snapshot)
+
+            if at_bottom:
+                # Still process this scan - it might have better OCR for last opponent
+                self.log(f"  [V2] Bottom of list reached (no scroll movement)")
+                if visible:
+                    consecutive_empty = 0
+                    new_count = _merge_new(visible)
+                    if new_count > 0:
+                        self.log(f"      + {new_count} new at bottom ({len(visible)} visible)")
+                break
 
             if not visible:
                 consecutive_empty += 1
@@ -776,16 +837,10 @@ class ArenaListScanner:
                 new_count = _merge_new(visible)
 
                 if new_count > 0:
-                    consecutive_dupes = 0
                     self.log(f"      + {new_count} new after scroll {scroll_num + 1} "
                              f"({len(visible)} visible)")
                 else:
-                    consecutive_dupes += 1
-                    self.log(f"      All duplicates (x{consecutive_dupes})")
-
-            if consecutive_dupes >= 1:
-                self.log(f"  [V2] End of list reached")
-                break
+                    self.log(f"      All duplicates after scroll {scroll_num + 1}")
 
         # Sort weakest first
         all_opponents.sort(key=lambda x: x['power'])

@@ -193,9 +193,9 @@ ARENA_ATTACK_WEAKEST_FIRST = True
 # Extends lower to catch the bottom-most "Team Power:" text
 FLUID_OCR_REGION = {
     'x_start': 0.72,    # Start X - includes "Power:" colon for row detection
-    'y_start': 0.24,    # Start Y - below header/nav UI
+    'y_start': 0.22,    # Start Y - slightly higher to avoid top cutoff
     'width': 0.14,      # Width - through number+K, stops before "Battle" (to ~86%)
-    'height': 0.76,     # Height - ends at 100% to fully cover bottom opponent
+    'height': 0.78,     # Height - extended to fully capture bottom text (22% + 78% = 100%)
 }
 
 # V2 level OCR region — player level number inside circular badge on portrait
@@ -203,9 +203,9 @@ FLUID_OCR_REGION = {
 # at the bottom of each opponent's portrait, to the right of the sidebar nav.
 FLUID_LEVEL_REGION = {
     'x_start': 0.1672,  # Start X - 3px further left to capture leading digit of "100"
-    'y_start': 0.24,    # Start Y - same as power region (below header/nav)
+    'y_start': 0.22,    # Start Y - same as power region (extended)
     'width': 0.0202,    # Width - 5px wider to ensure full 3-digit numbers fit
-    'height': 0.76,     # Height - same as power region
+    'height': 0.78,     # Height - same as power region (extended to capture bottom text)
 }
 
 # Duration of the scroll drag for fluid scanning

@@ -128,15 +128,15 @@ class ArenaBattleRunner:
         result = cv2.matchTemplate(search_region, template, cv2.TM_CCOEFF_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
 
-        # High threshold for exact match (we saved this exact region)
+        # High threshold for exact match (we saved this exact region during scan)
+        # Trust the template match - OCR is unreliable for verification
         if max_val >= 0.85:
             # max_loc is (x, y) in the search_region
             match_y_in_region = max_loc[1] + template_h // 2
             # Convert to frame coordinates
             y_pos = roi_y + match_y_in_region
 
-            self.log(f"    [TEMPLATE] Match score={max_val:.3f}, max_loc={max_loc}, template_h={template_h}")
-            self.log(f"    [TEMPLATE] ROI: roi_y={roi_y}, match_y_in_region={match_y_in_region}, final y_pos={y_pos}")
+            self.log(f"    [TEMPLATE] Found at y={y_pos} (score={max_val:.3f})")
 
             # Save debug image showing template match location
             debug_frame = frame.copy()
@@ -152,26 +152,7 @@ class ArenaBattleRunner:
             os.makedirs(debug_dir, exist_ok=True)
             cv2.imwrite(os.path.join(debug_dir, 'arena_template_match.png'), debug_frame)
 
-            # VERIFY: Use OCR to confirm we found the right power value
-            # This prevents false matches on visually similar power displays
-            roi_frame = frame[roi_y:roi_y + roi_h, roi_x:roi_x + roi_w].copy()
-            powers = self.text_recognizer.find_team_powers_hsv(roi_frame)
-
-            # Check if target_power is in the visible powers near this Y position
-            tolerance = 30  # Allow 30px difference
-            found_powers = []
-            for p in powers:
-                p_y_frame = (p['y_position'] or 0) + roi_y
-                found_powers.append(f"{p['power']:,} at y={p_y_frame}")
-                if abs(p_y_frame - y_pos) <= tolerance and p['power'] == target_power:
-                    # OCR confirms this is the right target
-                    self.log(f"    [TEMPLATE] OCR confirmed: {p['power']:,} at y={p_y_frame} matches target {target_power:,}")
-                    return y_pos
-
-            # Template matched but OCR doesn't confirm - false positive
-            self.log(f"    [TEMPLATE] Match at y={y_pos} (score={max_val:.3f}) but OCR doesn't confirm")
-            self.log(f"    [TEMPLATE] OCR found: {', '.join(found_powers)}")
-            return None
+            return y_pos
 
         return None
 
