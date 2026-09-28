@@ -312,7 +312,7 @@ class ArenaBattleRunner:
             self.log(f"    Start Fight button not found")
         return success
 
-    def wait_for_battle_complete(self, timeout=120, check_interval=3.0):
+    def wait_for_battle_complete(self, timeout=600, check_interval=3.0):
         """Poll for Battle Complete screen. Returns True if found."""
         start = time.time()
         while time.time() - start < timeout:
