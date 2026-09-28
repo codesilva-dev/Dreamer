@@ -8,6 +8,12 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(SCRIPT_DIR, 'templates')
 MACROS_DIR = os.path.join(SCRIPT_DIR, 'macros')
 
+# Tesseract OCR path (optional - only needed if tesseract is not in system PATH)
+# Uncomment and set this if you get "TesseractNotFoundError"
+# Windows example: TESSERACT_PATH = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+# macOS/Linux example: TESSERACT_PATH = '/usr/local/bin/tesseract'
+TESSERACT_PATH = None  # Set to None to use system PATH
+
 # Template names
 TEMPLATE_BATTLE = os.path.join(TEMPLATES_DIR, 'Battle.png')
 TEMPLATE_ARENA = os.path.join(TEMPLATES_DIR, 'Arena.png')

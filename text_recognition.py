@@ -20,10 +20,20 @@ class TextRecognizer:
         self.window_capture = window_capture
         self.log = log_func or print
         self.debug = debug  # Enable verbose logging
-        
+
         if pytesseract is None:
             raise ImportError("pytesseract is required for text recognition. Install with: pip install pytesseract")
-        
+
+        # Try to set Tesseract path from config if available
+        try:
+            from config import TESSERACT_PATH
+            if TESSERACT_PATH:
+                pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
+                self.log(f"[TextRecognizer] Using Tesseract from: {TESSERACT_PATH}")
+        except (ImportError, AttributeError):
+            # TESSERACT_PATH not defined in config - use system PATH
+            pass
+
         self.log("[TextRecognizer] Initialized")
     
     def _debug_log(self, message):
