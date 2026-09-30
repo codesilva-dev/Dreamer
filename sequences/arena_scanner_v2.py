@@ -11,6 +11,7 @@ import os
 import time
 import pyautogui
 from natural_click import NaturalClick
+import arena_debug
 
 from config import (
     ARENA_SCAN_DELAY,
@@ -21,7 +22,9 @@ from config import (
     ARENA_LIST_REGION,
     ARENA_BATTLE_BUTTON_X,
     FLUID_SCROLL_DRAG_DURATION,
-    FLUID_SCROLL_REGION,
+    FLUID_SCROLL_PIXELS,
+    FLUID_SCROLL_START_PERCENT,
+    FLUID_SCROLL_X_CENTER,
     FLUID_OCR_REGION,
     FLUID_LEVEL_REGION,
     SCRIPT_DIR,
@@ -89,6 +92,7 @@ class ArenaListScanner:
                     pass
         self._debug_dir = debug_root
         self._debug_counter = 0
+        arena_debug.reset()
 
     def _save_debug_frame(self, frame, powers, label='capture'):
         """
@@ -173,8 +177,8 @@ class ArenaListScanner:
         """
         Save a snapshot of the power region for template matching.
 
-        Crops a tight region around the "Team Power: XXX.XXK" text and saves it
-        with the power value as the filename for later template matching.
+        Crops a region including the team power text AND the battle button
+        for reliable template matching during targeting.
 
         Args:
             frame: Full game window frame
@@ -184,21 +188,58 @@ class ArenaListScanner:
         if self._snapshot_dir is None:
             return
 
+        frame_height, frame_width = frame.shape[:2]
+
         # Get the power OCR region bounds
         roi_x, roi_y, roi_w, roi_h = self.get_fluid_ocr_region(frame)
 
         # Crop a band around the power text Y position
-        # Use a generous height (±25px) to ensure we capture the full text
-        band_height = 50
-        y_start = max(roi_y, y_position - band_height // 2)
-        y_end = min(roi_y + roi_h, y_position + band_height // 2)
+        # Move up by 55%: was -30 to +60, now shift up by ~50px
+        # This captures more of the opponent portrait and team area
+        y_start = max(0, y_position - 80)
+        y_end = min(frame_height, y_position + 10)
 
-        # Use the full width of the OCR region
-        snapshot = frame[y_start:y_end, roi_x:roi_x + roi_w].copy()
+        # Extend horizontally to include the battle button on the right
+        # Start from 35% into the OCR region (just before where numbers start)
+        # to avoid capturing champion level badges on the left side
+        # Extend 80px to the right of OCR region to capture battle button
+        number_region_start = int(roi_w * 0.35)
+        x_start = roi_x + number_region_start
+        x_end = min(frame_width, roi_x + roi_w + 80)  # 80px beyond OCR region
+
+        snapshot = frame[y_start:y_end, x_start:x_end].copy()
 
         # Save with power value as filename
         filename = f"power_{power_value}.png"
         filepath = os.path.join(self._snapshot_dir, filename)
+        cv2.imwrite(filepath, snapshot)
+
+    def _save_opponent_debug_snapshot(self, frame, power_value, y_position, opponent_index, label):
+        """
+        Save a debug snapshot for every opponent to detect duplicates.
+
+        Uses the same cropping as the target snapshot, but saves with
+        a descriptive filename including scan label and opponent index.
+        """
+        if self._debug_dir is None:
+            return
+
+        frame_height, frame_width = frame.shape[:2]
+        roi_x, roi_y, roi_w, roi_h = self.get_fluid_ocr_region(frame)
+
+        # Same cropping as power snapshot
+        y_start = max(0, y_position - 90)  # 100px total height, moved up 5px
+        y_end = min(frame_height, y_position + 10)  # 100px total height, moved up 5px
+        number_region_start = int(roi_w * 0.35)
+        x_start = roi_x + number_region_start - 130  # Moved 130px left
+        x_end = min(frame_width, roi_x + roi_w + 50)  # Reduced width by 30px (was +80, now +50)
+
+        snapshot = frame[y_start:y_end, x_start:x_end].copy()
+
+        # Save with descriptive filename: label_oppN_powerValue.png
+        # opponent_index is now the global count (0-9), so add 1 for display (1-10)
+        filename = f"{label}_opp{opponent_index + 1}_{power_value}.png"
+        filepath = os.path.join(self._debug_dir, filename)
         cv2.imwrite(filepath, snapshot)
 
     def get_window_dimensions(self):
@@ -558,21 +599,20 @@ class ArenaListScanner:
 
     def _fluid_scroll_up(self):
         """
-        Perform a broad, fast scroll UP using FLUID_SCROLL_REGION.
+        Perform a broad, fast scroll UP using pixel-based distance.
         Same distance as _fluid_scroll_down but in reverse direction.
         """
         left, top, width, height = self.get_window_dimensions()
-        center_x = left + int(width * FLUID_SCROLL_REGION['x_center'])
-        # Reverse: start at top of region, drag down to bottom
-        start_y = top + int(height * FLUID_SCROLL_REGION['y_start'])
-        end_y = top + int(height * FLUID_SCROLL_REGION['y_end'])
+        center_x = left + int(width * FLUID_SCROLL_X_CENTER)
+        start_y = top + int(height * FLUID_SCROLL_START_PERCENT) - FLUID_SCROLL_PIXELS
+        end_y = start_y + FLUID_SCROLL_PIXELS  # Move down by exact pixel count
 
         pyautogui.moveTo(center_x, start_y)
         self.clicker.natural_delay(0.05)
         pyautogui.mouseDown()
         self.clicker.natural_delay(0.05)
         pyautogui.moveTo(center_x, end_y, duration=FLUID_SCROLL_DRAG_DURATION)
-        self.clicker.natural_delay(0.7)
+        self.clicker.natural_delay(4)  # Hold 0.5s longer for scroll up
         pyautogui.mouseUp()
         self.clicker.natural_delay(0.3)
 
@@ -611,15 +651,15 @@ class ArenaListScanner:
 
     def _fluid_scroll_down(self):
         """
-        Perform a broad, fast scroll down using FLUID_SCROLL_REGION.
+        Perform a broad, fast scroll down using pixel-based distance.
 
-        Covers ~45% of window height per scroll vs ~20% for the regular
-        scroll. Waits for the list to settle before returning.
+        Scrolls exactly FLUID_SCROLL_PIXELS downward for consistent,
+        accurate list traversal. Waits for the list to settle before returning.
         """
         left, top, width, height = self.get_window_dimensions()
-        center_x = left + int(width * FLUID_SCROLL_REGION['x_center'])
-        start_y = top + int(height * FLUID_SCROLL_REGION['y_end'])
-        end_y = top + int(height * FLUID_SCROLL_REGION['y_start'])
+        center_x = left + int(width * FLUID_SCROLL_X_CENTER)
+        start_y = top + int(height * FLUID_SCROLL_START_PERCENT)
+        end_y = start_y - FLUID_SCROLL_PIXELS  # Move up by exact pixel count
 
         pyautogui.moveTo(center_x, start_y)
         self.clicker.natural_delay(0.05)
@@ -642,64 +682,48 @@ class ArenaListScanner:
         """
         frame = self.window_capture.capture()
 
-        # Power scan (right side)
+        # Calibrated scan (gets both power AND level in one pass)
         roi_x, roi_y, roi_w, roi_h = self.get_fluid_ocr_region(frame)
         roi_frame = frame[roi_y:roi_y + roi_h, roi_x:roi_x + roi_w].copy()
 
         debug_prefix = f'{label}_' if self._debug_dir else ''
-        powers = self.text_recognizer.find_team_powers_hsv(
-            roi_frame, debug_dir=self._debug_dir, debug_prefix=debug_prefix
+        opponents = self.text_recognizer.find_team_powers_calibrated(
+            roi_frame,
+            full_frame=frame,
+            roi_offset=(roi_x, roi_y),
+            debug_dir=self._debug_dir,
+            debug_prefix=debug_prefix
         )
 
-        # Level scan (left side)
-        lvl_x, lvl_y, lvl_w, lvl_h = self.get_fluid_level_region(frame)
-        lvl_frame = frame[lvl_y:lvl_y + lvl_h, lvl_x:lvl_x + lvl_w].copy()
-
-        # Pass power Y positions as hints for the level scanner.
-        # Power Y is relative to the power ROI; level Y is relative to the
-        # level ROI. Both ROIs share the same y_start and height, so the
-        # Y positions map directly.
-        # Filter out any invalid entries (should be dicts, not ints)
-        power_y_hints = [
-            p['y_position'] for p in powers
-            if isinstance(p, dict) and p.get('y_position') is not None
-        ]
-
-        levels = self.text_recognizer.find_player_levels_hsv(
-            lvl_frame, debug_dir=self._debug_dir, debug_prefix=debug_prefix,
-            power_y_hints=power_y_hints
-        )
-
-        # Save level region crop for debugging
-        if self._debug_dir:
-            cv2.imwrite(os.path.join(self._debug_dir, f'level_region_{label}.png'),
-                        lvl_frame)
-
-        # Build opponent list with level matching
+        # Build opponent list
         visible = []
-        for i, p in enumerate(powers):
-            # Skip invalid entries (should be dicts, not ints)
-            if not isinstance(p, dict):
+        for i, opp in enumerate(opponents):
+            # Skip invalid entries (should be dicts)
+            if not isinstance(opp, dict):
                 continue
 
-            y_pos = (p['y_position'] or (i * 100 + 50)) + roi_y
+            # y_position is already in full frame coordinates (from calibrated OCR)
+            y_pos = opp['y_position'] or (roi_y + i * 100 + 50)
             is_available = self.check_battle_available(frame, y_pos)
-            matched_level = self._match_level_to_power(p, levels, roi_y, lvl_y)
 
             opponent = {
-                'power': p['power'],
-                'level': matched_level,
+                'power': opp['power'],
+                'level': opp['level'],
                 'y_position': y_pos,
                 'available': is_available,
-                'raw_text': p.get('raw_text', ''),
+                'raw_text': opp.get('power_text', ''),
             }
             visible.append(opponent)
 
             # Save power snapshot for template matching during targeting
             # Only save snapshots for opponents that match our filter criteria
-            if is_available and p.get('y_position') is not None:
+            if is_available and opp.get('y_position') is not None:
                 if self._should_save_snapshot(opponent):
-                    self._save_power_snapshot(frame, p['power'], y_pos)
+                    self._save_power_snapshot(frame, opp['power'], y_pos)
+
+            # Also save debug snapshot for EVERY opponent to detect duplicates
+            if self._debug_dir and opp.get('y_position') is not None:
+                self._save_opponent_debug_snapshot(frame, opp['power'], y_pos, i, label)
 
         self._save_debug_frame(frame, visible, label=label)
         return visible
@@ -762,26 +786,87 @@ class ArenaListScanner:
         self._init_snapshot_dir()
         self.log(f"    Debug frames → {self._debug_dir}")
 
-        known_powers = set()
+        known_opponent_templates = []  # List of (filename, opponent_dict) tuples
         all_opponents = []
 
-        def _is_known(power):
-            """Fuzzy match: ±500 tolerance for minor OCR digit errors.
-            Catches variants like 300,750 vs 300,500 (same opponent, digit
-            misread) without merging genuinely different opponents."""
-            for kp in known_powers:
-                if abs(power - kp) <= 500:
+        def _is_duplicate_template(new_snapshot_path):
+            """
+            Check if this opponent snapshot matches any previously saved opponent.
+            Uses template matching to detect duplicates even if OCR reads differ.
+
+            Returns: True if duplicate, False if new opponent
+            """
+            if not os.path.exists(new_snapshot_path):
+                return False
+
+            new_img = cv2.imread(new_snapshot_path)
+            if new_img is None:
+                return False
+
+            # Compare against all known opponent templates
+            for known_path, _ in known_opponent_templates:
+                if not os.path.exists(known_path):
+                    continue
+
+                known_img = cv2.imread(known_path)
+                if known_img is None:
+                    continue
+
+                # For same-sized images, use direct comparison instead of template matching
+                # (template matching requires template < search image)
+                if new_img.shape == known_img.shape:
+                    # Calculate mean absolute difference (normalized to 0-1 range)
+                    diff = cv2.absdiff(new_img, known_img)
+                    mean_diff = diff.mean() / 255.0  # Normalize to 0-1
+                    similarity = 1.0 - mean_diff
+
+                    # Log high similarity for debugging (regardless of power value in filename)
+                    if similarity >= 0.90:
+                        new_name = new_snapshot_path.split(os.sep)[-1]
+                        known_name = known_path.split(os.sep)[-1]
+                        self.log(f"      [DUP] {new_name} vs {known_name}: {similarity:.3f}")
+
+                    # 90% threshold - catches duplicates with animations, glows, OCR misreads
+                    # Same opponent with different visual states typically 90-95% similar
+                    # Different opponents (different teams) typically <85% similar
+                    if similarity >= 0.92:
+                        self.log(f"        → DUPLICATE!")
+                        return True
+                    continue
+
+                # For different sizes, skip (shouldn't happen with our snapshots)
+                if new_img.shape != known_img.shape:
+                    continue
+
+                # Calculate similarity using normalized correlation
+                result = cv2.matchTemplate(new_img, known_img, cv2.TM_CCOEFF_NORMED)
+                _, max_val, _, _ = cv2.minMaxLoc(result)
+
+                # 92% threshold for template matching too
+                if max_val >= 0.92:
+                    self.log(f"      [DUP] Template match: {max_val:.3f}")
                     return True
+
             return False
 
-        def _merge_new(opponents_list):
-            """Add new opponents to the master list, return count of new."""
+        def _merge_new(opponents_list, label):
+            """Add new opponents to the master list using template matching."""
             new_count = 0
-            for opp in opponents_list:
-                if not _is_known(opp['power']):
-                    known_powers.add(opp['power'])
-                    all_opponents.append(opp)
-                    new_count += 1
+            for idx, opp in enumerate(opponents_list):
+                # Build snapshot filename (matches what we saved)
+                snapshot_filename = f"{label}_opp{idx + 1}_{opp['power']}.png"
+                snapshot_path = os.path.join(self._debug_dir, snapshot_filename)
+
+                # Check if this is a duplicate using template matching
+                if _is_duplicate_template(snapshot_path):
+                    # Skip this opponent - it's a duplicate
+                    continue
+
+                # New opponent - add to list and save template reference
+                known_opponent_templates.append((snapshot_path, opp))
+                all_opponents.append(opp)
+                new_count += 1
+
             return new_count
 
         # Phase 1: Capture what's visible at the top
@@ -792,7 +877,7 @@ class ArenaListScanner:
             avail = sum(1 for o in initial if o['available'])
             self.log(f"    Visible: {len(initial)} opponents ({avail} avail) — {power_list}")
 
-        new_at_top = _merge_new(initial)
+        new_at_top = _merge_new(initial, 'initial_top')
         self.log(f"      + {new_at_top} snatched at top")
 
         # Phase 2: Broad scroll down, OCR after settle, repeat
@@ -817,7 +902,7 @@ class ArenaListScanner:
                 self.log(f"  [V2] Bottom of list reached (no scroll movement)")
                 if visible:
                     consecutive_empty = 0
-                    new_count = _merge_new(visible)
+                    new_count = _merge_new(visible, f'scroll{scroll_num + 1}')
                     if new_count > 0:
                         self.log(f"      + {new_count} new at bottom ({len(visible)} visible)")
                 break
@@ -834,7 +919,7 @@ class ArenaListScanner:
                 continue
             else:
                 consecutive_empty = 0
-                new_count = _merge_new(visible)
+                new_count = _merge_new(visible, f'scroll{scroll_num + 1}')
 
                 if new_count > 0:
                     self.log(f"      + {new_count} new after scroll {scroll_num + 1} "
@@ -842,17 +927,14 @@ class ArenaListScanner:
                 else:
                     self.log(f"      All duplicates after scroll {scroll_num + 1}")
 
-        # Sort weakest first
+        # Add scan_index to preserve original scan order for debugging
+        for idx, opp in enumerate(all_opponents):
+            opp['scan_index'] = idx
+
+        # Sort weakest first for battle order
         all_opponents.sort(key=lambda x: x['power'])
 
         available = sum(1 for o in all_opponents if o['available'])
-        self.log(f"  [V2] Fluid scan complete: {len(all_opponents)} total, {available} available")
-
-        if all_opponents:
-            powers_str = ', '.join(
-                f"{o['power']:,}" + (f" (L{o['level']})" if o.get('level') else "")
-                for o in all_opponents
-            )
-            self.log(f"    Sorted: {powers_str}")
+        self.log(f"  ✓ Scan complete: Found {len(all_opponents)} opponents ({available} available)")
 
         return all_opponents

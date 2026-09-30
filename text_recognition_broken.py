@@ -6,10 +6,7 @@ Uses pytesseract OCR to read text from game screenshots
 import cv2
 import numpy as np
 import re
-import os
-import json
 from collections import Counter
-import arena_debug
 
 try:
     import pytesseract
@@ -590,595 +587,248 @@ class TextRecognizer:
         self._debug_log(f"  Targeted scan found {len(powers)} power values")
         return powers
 
-    def _secondary_level_ocr(self, level_window):
-        """Secondary OCR for failed level reads using advanced preprocessing."""
-        if level_window.shape[0] <= 5 or level_window.shape[1] <= 5:
-            return None
-
-        self._debug_log(f"    [2ND] Advanced preprocessing...")
-
-        gray = cv2.cvtColor(level_window, cv2.COLOR_BGR2GRAY) if len(level_window.shape) == 3 else level_window
-        whitelist = '--psm 7 -c tessedit_char_whitelist=0123456789'
-        votes = {}
-
-        techniques = [
-            ('Adaptive', lambda: cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)),
-            ('Otsu', lambda: cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]),
-            ('Morph', lambda: cv2.morphologyEx(cv2.threshold(gray, 170, 255, cv2.THRESH_BINARY)[1], cv2.MORPH_CLOSE, np.ones((2,2), np.uint8))),
-            ('CLAHE', lambda: cv2.threshold(cv2.createCLAHE(clipLimit=2.0, tileGridSize=(3,3)).apply(gray), 180, 255, cv2.THRESH_BINARY)[1])
-        ]
-
-        for name, process in techniques:
-            try:
-                processed = process()
-                padded = cv2.copyMakeBorder(processed, 10, 10, 10, 10, cv2.BORDER_CONSTANT, value=0)
-                upscaled = cv2.resize(padded, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
-                text = pytesseract.image_to_string(upscaled, config=whitelist).strip()
-                if text and text.isdigit() and 30 <= int(text) <= 100:
-                    votes[int(text)] = votes.get(int(text), 0) + 1
-                    self._debug_log(f"      {name}: {text}")
-            except:
-                pass
-
-        if votes:
-            level = max(votes.items(), key=lambda x: x[1])[0]
-            self._debug_log(f"    [2ND ✓] Level={level} (votes={votes})")
-            return level
-        self._debug_log(f"    [2ND ✗] Failed")
-        return None
-
-    def find_team_powers_calibrated(self, image, full_frame=None, roi_offset=(0, 0), debug_dir=None, debug_prefix=''):
-        """
-        Find team powers and levels using calibrated fixed windows.
-
-        Uses arena_ocr_calibration.json for window positions and sizes.
-        """
-        # Load calibration
-        calib_path = os.path.join(os.path.dirname(__file__), 'arena_ocr_calibration.json')
-        with open(calib_path, 'r') as f:
-            calib = json.load(f)
-
-        tp_win = calib['team_power_window']
-        lv_win = calib['level_window']
-
-        self._debug_log(f"  [CALIBRATION] Team Power window: {tp_win['width']}x{tp_win['height']} at offset (+{tp_win['offset_x']}, {tp_win['offset_y']})")
-        self._debug_log(f"  [CALIBRATION] Level window: {lv_win['width']}x{lv_win['height']} at offset ({lv_win['offset_x']}, {lv_win['offset_y']})")
-
-        # Find "Power" text anchors using HSV filtering for better text isolation
-        if len(image.shape) == 3:
-            hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-            # White text filter
-            white_mask = (hsv[:, :, 2] > 180) & (hsv[:, :, 1] < 80)
-            filtered = np.where(white_mask, 255, 0).astype(np.uint8)
-        else:
-            _, filtered = cv2.threshold(image, 180, 255, cv2.THRESH_BINARY)
-
-        # Upscale for better OCR of "Power" text
-        filtered_upscaled = cv2.resize(filtered, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-
-        # OCR to find "Power" text
-        ocr_result = pytesseract.image_to_data(filtered_upscaled, config='--psm 6', output_type=pytesseract.Output.DICT)
-
-        power_instances = []
-        for i, text in enumerate(ocr_result['text']):
-            if not text:
-                continue
-
-            text_lower = text.lower()
-            # Handle common OCR misreads of "Power"
-            if 'power' in text_lower or 'fower' in text_lower or 'pover' in text_lower:
-                # Get center of "Power" text (scaled back to original since we upscaled 2x)
-                left = ocr_result['left'][i] // 2
-                top = ocr_result['top'][i] // 2
-                w = ocr_result['width'][i] // 2
-                h = ocr_result['height'][i] // 2
-
-                cx = left + w // 2
-                cy = top + h // 2
-                power_instances.append({'center_x': cx, 'center_y': cy})
-                self._debug_log(f"  [POWER] Found at center ({cx}, {cy})")
-
-        self._debug_log(f"  Found {len(power_instances)} 'Power' instances")
-
-        if not power_instances:
-            arena_debug.save(full_frame, "calibrated_NO_POWER_FOUND")
-            return []
-
-        # Save annotated full frame showing where "Power" anchors were found
-        if full_frame is not None:
-            annotated = full_frame.copy()
-            for i, pi in enumerate(power_instances):
-                fx = pi['center_x'] + roi_offset[0]
-                fy = pi['center_y'] + roi_offset[1]
-                cv2.circle(annotated, (fx, fy), 8, (0, 255, 0), 2)
-                cv2.putText(annotated, f"Power#{i+1}", (fx + 10, fy),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                # Draw team power window
-                tp_x1 = fx + tp_win['offset_x']
-                tp_y1 = fy + tp_win['offset_y']
-                cv2.rectangle(annotated, (tp_x1, tp_y1),
-                              (tp_x1 + tp_win['width'], tp_y1 + tp_win['height']),
-                              (255, 0, 0), 2)  # Blue = power window
-                # Draw level window
-                lv_x1 = fx + lv_win['offset_x']
-                lv_y1 = fy + lv_win['offset_y']
-                cv2.rectangle(annotated, (lv_x1, lv_y1),
-                              (lv_x1 + lv_win['width'], lv_y1 + lv_win['height']),
-                              (0, 0, 255), 2)  # Red = level window
-            arena_debug.save(annotated, "calibrated_windows_overlay")
-
-        # OCR each power instance
-        results = []
-        whitelist_power = '--psm 7 -c tessedit_char_whitelist=0123456789.,K'
-        whitelist_level = '--psm 7 -c tessedit_char_whitelist=0123456789'
-        roi_offset_x, roi_offset_y = roi_offset
-
-        for idx, power in enumerate(power_instances):
-            px_region, py_region = power['center_x'], power['center_y']
-            px_frame = px_region + roi_offset_x
-            py_frame = py_region + roi_offset_y
-
-            self._debug_log(f"  [POWER #{idx+1}] Region ({px_region}, {py_region}) → Frame ({px_frame}, {py_frame})")
-
-            # Team power window
-            tp_x1 = px_frame + tp_win['offset_x']
-            tp_y1 = py_frame + tp_win['offset_y']
-            tp_x2 = tp_x1 + tp_win['width']
-            tp_y2 = tp_y1 + tp_win['height']
-
-            # Level window
-            lv_x1 = px_frame + lv_win['offset_x']
-            lv_y1 = py_frame + lv_win['offset_y']
-            lv_x2 = lv_x1 + lv_win['width']
-            lv_y2 = lv_y1 + lv_win['height']
-
-            self._debug_log(f"    Team Power: ({tp_x1}, {tp_y1}) to ({tp_x2}, {tp_y2}) = {tp_win['width']}x{tp_win['height']}px")
-            self._debug_log(f"    Level: ({lv_x1}, {lv_y1}) to ({lv_x2}, {lv_y2}) = {lv_win['width']}x{lv_win['height']}px")
-
-            # Crop windows from full frame (with bounds clamping)
-            frame_h, frame_w = full_frame.shape[:2]
-            tp_x1c = max(0, tp_x1)
-            tp_y1c = max(0, tp_y1)
-            tp_x2c = min(frame_w, tp_x2)
-            tp_y2c = min(frame_h, tp_y2)
-            lv_x1c = max(0, lv_x1)
-            lv_y1c = max(0, lv_y1)
-            lv_x2c = min(frame_w, lv_x2)
-            lv_y2c = min(frame_h, lv_y2)
-
-            team_power_window = full_frame[tp_y1c:tp_y2c, tp_x1c:tp_x2c].copy()
-            level_window = full_frame[lv_y1c:lv_y2c, lv_x1c:lv_x2c].copy()
-
-            # Log if level window was clipped or empty
-            if lv_x1 < 0 or lv_y1 < 0 or lv_x2 > frame_w or lv_y2 > frame_h:
-                self._debug_log(f"    ⚠ Level window clipped! Raw: ({lv_x1},{lv_y1})-({lv_x2},{lv_y2}), Frame: {frame_w}x{frame_h}")
-            if level_window.shape[0] <= 0 or level_window.shape[1] <= 0:
-                self._debug_log(f"    ⚠ Level window EMPTY for opp #{idx+1}")
-
-            # Save raw OCR crops for debugging (include Y coords in filename)
-            arena_debug.save(team_power_window, f"opp{idx+1}_power_y{py_frame}")
-            arena_debug.save(level_window, f"opp{idx+1}_level_y{lv_y1c}-{lv_y2c}_x{lv_x1c}-{lv_x2c}")
-
-            # OCR team power with voting
-            power_value = None
-            power_text = ''
-            thresholds = [170, 180, 190, 200]
-            votes = {}
-
-            gray_tp = cv2.cvtColor(team_power_window, cv2.COLOR_BGR2GRAY)
-            for thresh_val in thresholds:
-                _, thresh_img = cv2.threshold(gray_tp, thresh_val, 255, cv2.THRESH_BINARY)
-                padded = cv2.copyMakeBorder(thresh_img, 10, 10, 10, 10, cv2.BORDER_CONSTANT, value=0)
-                upscaled = cv2.resize(padded, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
-
-                try:
-                    raw_text = pytesseract.image_to_string(upscaled, config=whitelist_power).strip()
-                    if raw_text:
-                        parsed_value = self._parse_power_string(raw_text)
-                        if parsed_value and 10000 <= parsed_value <= 2000000:
-                            votes[parsed_value] = votes.get(parsed_value, 0) + 1
-                except:
-                    pass
-
-            if votes:
-                power_value = max(votes.items(), key=lambda x: x[1])[0]
-                power_text = f"{power_value/1000:.2f}K"
-                self._debug_log(f"  Band {idx+1} -> {power_value:,} ('{power_text}') votes={votes}")
-
-            # OCR level with voting
-            level_value = None
-            if level_window.shape[0] > 5 and level_window.shape[1] > 5:
-                gray_lv = cv2.cvtColor(level_window, cv2.COLOR_BGR2GRAY)
-                thresholds = [140, 150, 160, 170, 180, 190, 200]
-                votes = {}
-
-                for thresh_val in thresholds:
-                    _, thresh_img = cv2.threshold(gray_lv, thresh_val, 255, cv2.THRESH_BINARY)
-                    padded = cv2.copyMakeBorder(thresh_img, 10, 10, 10, 10, cv2.BORDER_CONSTANT, value=0)
-                    upscaled = cv2.resize(padded, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
-
-                    try:
-                        raw_text = pytesseract.image_to_string(upscaled, config=whitelist_level).strip()
-                        if raw_text and raw_text.isdigit():
-                            level = int(raw_text)
-                            if 30 <= level <= 100:
-                                votes[level] = votes.get(level, 0) + 1
-                    except:
-                        pass
-
-                if votes:
-                    level_value = max(votes.items(), key=lambda x: x[1])[0]
-                    self._debug_log(f"    Level={level_value} votes={dict((k, v) for k, v in votes.items())}")
-                else:
-                    # Try secondary OCR
-                    level_value = self._secondary_level_ocr(level_window)
-
-            if power_value and level_value:
-                results.append({'power': power_value, 'level': level_value, 'y_position': int(py_frame), 'power_text': power_text})
-                self._debug_log(f"  ✓ Opponent #{idx+1}: Power={power_value:,}, Level={level_value}")
-            elif power_value:
-                results.append({'power': power_value, 'level': None, 'y_position': int(py_frame), 'power_text': power_text})
-                self._debug_log(f"  ! Opponent #{idx+1}: Power={power_value:,}, Level=? (OCR failed)")
-                # Save level crop again with FAILED label for easy identification
-                arena_debug.save(level_window, f"opp{idx+1}_level_FAILED")
-
-        self._debug_log(f"  Window-based scan found {len(results)} opponents")
-        return results
-
-    def find_team_powers_hsv(self, image, debug_dir=None, debug_prefix=''):
-        """
-        Find team power values using HSV filtering + two-column detection.
-
-        Strategy to separate power text from champion icon "60" labels:
-
-        1. HSV-filter the whole region to isolate white/bright text
-        2. Use the LEFT column (0-30% of ROI width) to find "Team Power:"
-           label rows via row projection. The "Team Power:" label is a long
-           string with density ~12+ in this zone, while "60" icon labels
-           only reach density ~7-8 here — reliable separation.
-        3. For each located "Team Power:" Y position, crop a tight band
-           from the RIGHT column (30-100%) at that exact Y and OCR just
-           the number with digit+K whitelist.
-
-        This avoids icon noise entirely because only rows with a "Team
-        Power:" label in the left column get scanned for numbers.
-
-        Args:
-            image: BGR image (the OCR region crop)
-            debug_dir: If set, save filtered image for inspection
-
-        Returns:
-            List of dicts with 'power' (int) and 'y_position' (int)
-        """
-        height, width = image.shape[:2]
-
-        # Step 1: HSV filter to isolate white/near-white pixels.
-        # Build THREE filter variants at different thresholds for the
-        # majority-vote OCR in Step 3. Different thresholds capture
-        # different noise pixels, so Tesseract gets genuinely different
-        # input at each threshold — preventing systematic misreads.
-        if len(image.shape) == 3:
-            hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-            white_mask = (hsv[:, :, 2] > 180) & (hsv[:, :, 1] < 80)
-            filtered = np.where(white_mask, 255, 0).astype(np.uint8)
-            strict_mask = (hsv[:, :, 2] > 200) & (hsv[:, :, 1] < 50)
-            filtered_strict = np.where(strict_mask, 255, 0).astype(np.uint8)
-            relaxed_mask = (hsv[:, :, 2] > 160) & (hsv[:, :, 1] < 100)
-            filtered_relaxed = np.where(relaxed_mask, 255, 0).astype(np.uint8)
-            filter_variants = [filtered, filtered_strict, filtered_relaxed]
-        else:
-            _, filtered = cv2.threshold(image, 180, 255, cv2.THRESH_BINARY)
-            filter_variants = [filtered]
-
-        # Step 2: Dual-column row projection to find "Team Power:" rows.
-        #
-        # The ROI is split into left (0-30%), middle (30-60%), right (60-100%).
-        # "Team Power: 222.94K" spans left+mid columns, so both have density ≥10.
-        # Noise sources only have density in ONE column:
-        #   - Star ratings: high left (~17) but low mid (~5)
-        #   - Icon "60" labels: low left (~5-9), variable mid
-        #   - Icon borders: variable, rarely both ≥10
-        #
-        # Requiring BOTH left AND mid ≥ 10 average density selects only
-        # power text rows.
-        left_boundary = int(width * 0.30)
-        mid_boundary = int(width * 0.60)
-        left_col = filtered[:, :left_boundary]
-        mid_col = filtered[:, left_boundary:mid_boundary]
-        left_row_sums = left_col.sum(axis=1) // 255
-        mid_row_sums = mid_col.sum(axis=1) // 255
-
-        # Find bands where BOTH columns have sufficient density.
-        # A row qualifies if left >= 10 AND mid >= 7. The left threshold
-        # filters icon "60" labels (density ~5-8) from "Team Power:"
-        # labels (density ~12-14). Mid is slightly more lenient because
-        # the number text width varies.
-        min_left_density = 10
-        min_mid_density = 7
-        label_bands = []
-        in_band = False
-        band_start = 0
-
-        for y in range(height):
-            if left_row_sums[y] >= min_left_density and mid_row_sums[y] >= min_mid_density:
-                if not in_band:
-                    band_start = y
-                    in_band = True
-            else:
-                if in_band:
-                    band_h = y - band_start
-                    if 8 <= band_h <= 20:  # "Team Power:" text is ~12px tall
-                        label_bands.append((band_start, y))
-                    in_band = False
-        if in_band:
-            band_h = height - band_start
-            if 8 <= band_h <= 20:
-                label_bands.append((band_start, height))
-
-        # Deduplicate bands that are too close (within 50px — one per opponent row)
-        deduped_bands = []
-        for band in label_bands:
-            mid = (band[0] + band[1]) // 2
-            too_close = any(abs(mid - (b[0] + b[1]) // 2) < 50 for b in deduped_bands)
-            if not too_close:
-                deduped_bands.append(band)
-        label_bands = deduped_bands
-
-        self._debug_log(f"  Dual-column projection found {len(label_bands)} 'Team Power:' rows")
-
-        # Debug: save filtered image with band markers
-        if debug_dir:
-            import os
-            debug_img = cv2.cvtColor(filtered, cv2.COLOR_GRAY2BGR)
-            # Draw column boundaries
-            cv2.line(debug_img, (left_boundary, 0), (left_boundary, height - 1),
-                     (255, 255, 0), 1)
-            cv2.line(debug_img, (mid_boundary, 0), (mid_boundary, height - 1),
-                     (200, 200, 0), 1)
-            for band_top, band_bot in label_bands:
-                # Green box on left+mid columns = detected "Team Power:" label
-                cv2.rectangle(debug_img, (0, band_top), (mid_boundary, band_bot),
-                              (0, 255, 0), 1)
-            cv2.imwrite(os.path.join(debug_dir, f'{debug_prefix}hsv_filtered.png'), filtered)
-            # hsv_bands.png is saved after OCR loop to include number crop markers
-
-        # Step 3: OCR the number portion at each detected label Y position.
-        # The "Team Power:" label + colon position varies per row, so we
-        # dynamically find the colon-to-number gap for each band.
-        #
-        # Uses best-of-3 majority vote across multiple HSV filter
-        # thresholds (standard/strict/relaxed) × 2 scale combos = 6
-        # total reads. A value must appear 2+ times to be trusted.
-        whitelist_config = '--psm 7 -c tessedit_char_whitelist=0123456789.,K'
-        powers = []
-        used_y_positions = set()
-
-        for band_idx, (band_top, band_bot) in enumerate(label_bands):
-            # Find the number start by detecting the gap after the colon.
-            # Use a slightly wider vertical crop for gap detection to
-            # ensure we see all character strokes.
-            gap_crop_y = max(0, band_top - 2)
-            gap_crop_h = min(band_bot - band_top + 4, height - gap_crop_y)
-
-            band_row = filtered[gap_crop_y:gap_crop_y + gap_crop_h, :]
-            col_sums = band_row.sum(axis=0) // 255
-
-            # Find clusters of white columns
-            active_cols = [x for x in range(width) if col_sums[x] > 0]
-            number_start_x = int(width * 0.44)  # fallback
-
-            if active_cols:
-                clusters = []
-                cs = active_cols[0]
-                prev = active_cols[0]
-                for x in active_cols[1:]:
-                    if x - prev > 3:
-                        clusters.append((cs, prev))
-                        cs = x
-                    prev = x
-                clusters.append((cs, prev))
-
-                # Find the colon-to-number gap. The ":" colon is always
-                # at approximately x=95-100 in the ROI. Look for the first
-                # gap > 5px whose left edge falls in x=90-115.
-                for ci in range(len(clusters) - 1):
-                    gap_start = clusters[ci][1]
-                    gap_end = clusters[ci + 1][0]
-                    if 90 <= gap_start <= 115 and gap_end - gap_start > 5:
-                        number_start_x = gap_end
-                        break
-
-            # Best-of-3 majority vote OCR with multiple filter variants.
-            #
-            # Tesseract's failure modes:
-            #   - Digit-dropping: leading digits vanish → smaller number
-            #   - Digit mutation: a digit misreads consistently when the
-            #     same filtered image has noise near the digit.
-            #
-            # Running more OCR attempts on the SAME filtered image won't
-            # fix mutations — the noise is baked into the pixels. Instead
-            # we OCR across THREE different HSV filter thresholds, giving
-            # Tesseract genuinely different input for each. A mutation
-            # caused by noise at one threshold is unlikely to repeat at a
-            # different threshold where that noise pixel doesn't survive.
-            #
-            # Each filter variant gets 2 attempts (different scale/padding)
-            # = 6 total reads. Best-of-3 majority picks the winner.
-            ocr_configs = [
-                # (y_pad, scale, interpolation)
-                # Increased padding to capture text at screen edges where it may be partially cut off
-                (8, 3, cv2.INTER_CUBIC),   # wide context, 3x
-                (5, 2, cv2.INTER_CUBIC),   # standard, 2x
-            ]
-
-            best_text = None
-            best_power = None
-            best_raw_power = None
-            debug_strip = None
-            all_reads = []
-
-            for filt_img in filter_variants:
-                for y_pad, scale, interp in ocr_configs:
-                    crop_y = max(0, band_top - y_pad)
-                    crop_h = min(band_bot - band_top + 2 * y_pad, height - crop_y)
-                    band_strip = filt_img[crop_y:crop_y + crop_h, number_start_x:]
-
-                    if band_strip.shape[0] < 5 or band_strip.shape[1] < 10:
-                        continue
-
-                    # Force contiguous copy — cv2 can segfault on
-                    # non-contiguous numpy views from slicing
-                    band_strip = np.ascontiguousarray(band_strip)
-
-                    padded = cv2.copyMakeBorder(band_strip, 10, 10, 5, 5,
-                                                cv2.BORDER_CONSTANT, value=0)
-                    upscaled = cv2.resize(padded, None, fx=scale, fy=scale,
-                                          interpolation=interp)
-
-                    try:
-                        raw_text = pytesseract.image_to_string(
-                            upscaled, config=whitelist_config
-                        ).strip().lstrip('., ')
-                    except Exception:
-                        continue
-
-                    if not raw_text or not re.match(r'\d', raw_text):
-                        continue
-
-                    match = re.match(r'^([\d,\.]+[K]?)$', raw_text)
-                    if not match:
-                        continue
-
-                    raw_power = match.group(1)
-
-                    # Validate comma format
-                    if ',' in raw_power and not raw_power.upper().endswith('K'):
-                        if not re.match(r'^\d{1,3}(,\d{3})+$', raw_power):
-                            continue
-
-                    power = self._parse_power_string(raw_power)
-                    if power is not None and 1000 <= power <= 999000:
-                        all_reads.append((power, raw_text, band_strip))
-
-            # Pick winner: require 2+ votes (majority). Ties broken by
-            # higher value (digit-dropping always produces smaller numbers,
-            # so the larger reading captured more leading digits).
-            if all_reads:
-                power_counts = Counter(r[0] for r in all_reads)
-                unique_reads = {}
-                for power, text, strip in all_reads:
-                    if power not in unique_reads:
-                        unique_reads[power] = (power, text, strip)
-
-                # Values with 2+ votes
-                majority_values = {p for p, c in power_counts.items() if c >= 2}
-
-                if majority_values:
-                    # Among majority values, pick: most votes, then highest
-                    # power (larger = more leading digits = more correct)
-                    best_entry = max(
-                        (v for v in unique_reads.values() if v[0] in majority_values),
-                        key=lambda r: (power_counts[r[0]], r[0])
-                    )
-                else:
-                    # No majority — remove extreme outliers and use median
-                    self._debug_log(f"  Band {band_idx + 1}: WARNING no majority "
-                                    f"after {len(all_reads)} reads ({dict(power_counts)})")
-
-                    # Get all power values sorted
-                    powers = sorted(unique_reads.keys())
-
-                    if len(powers) >= 3:
-                        # Remove only EXTREME outliers (10x+ difference from median)
-                        # This catches obvious OCR errors (5K when actual is 75K, or 493K when actual is 75K)
-                        # but preserves legitimate high-power opponents (500K is real in this game)
-                        import statistics
-                        median_val = statistics.median(powers)
-
-                        # Filter: keep values within 10x of median (in either direction)
-                        # Example: median=75K → keep 7.5K-750K, remove anything outside that range
-                        filtered_powers = [
-                            p for p in powers
-                            if 0.1 * median_val <= p <= 10 * median_val
-                        ]
-
-                        if filtered_powers:
-                            # After removing outliers, pick the HIGHEST value
-                            # (OCR tends to drop leading digits, so higher = more complete)
-                            best_power = max(filtered_powers)
-                            best_entry = unique_reads[best_power]
-                        else:
-                            # All filtered out (shouldn't happen), use middle value
-                            mid_idx = len(powers) // 2
-                            best_entry = unique_reads[powers[mid_idx]]
-                    else:
-                        # Less than 3 reads, pick the middle value
-                        median_power = powers[len(powers) // 2]
-                        best_entry = unique_reads[median_power]
-
-                best_power, best_text, debug_strip = best_entry
-
-            # Debug: save band crop and annotate bands image
-            if debug_dir:
-                # Save the strip from the standard crop for visual inspection
-                # Extend crop vertically to ensure full text capture (especially at screen edges)
-                std_crop_y = max(0, band_top - 5)
-                std_crop_h = min(band_bot - band_top + 10, height - std_crop_y)
-                std_strip = filtered[std_crop_y:std_crop_y + std_crop_h, number_start_x:]
-                status = 'hit' if best_power else 'miss'
-                cv2.imwrite(
-                    os.path.join(debug_dir, f'{debug_prefix}band_{band_idx + 1}_{status}.png'),
-                    std_strip
-                )
-                if debug_strip is not None:
-                    padded = cv2.copyMakeBorder(debug_strip, 10, 10, 5, 5,
-                                                cv2.BORDER_CONSTANT, value=0)
-                    up_debug = cv2.resize(padded, None, fx=3, fy=3,
-                                          interpolation=cv2.INTER_CUBIC)
-                    cv2.imwrite(
-                        os.path.join(debug_dir, f'{debug_prefix}band_{band_idx + 1}_{status}_2x.png'),
-                        up_debug
-                    )
-                # Draw number crop zone on bands image
-                color = (0, 255, 0) if best_power else (0, 0, 255)
-                cv2.rectangle(debug_img, (number_start_x, band_top),
-                              (width - 1, band_bot), color, 1)
-                label = best_text or 'EMPTY'
-                cv2.putText(debug_img, label, (number_start_x, band_top - 3),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.35, color, 1)
-
-            # Save the power band crop for debugging (regardless of OCR result)
-            std_crop_y = max(0, band_top - 5)
-            std_crop_h = min(band_bot - band_top + 10, height - std_crop_y)
-            hsv_band_crop = filtered[std_crop_y:std_crop_y + std_crop_h, :]
-            status_label = f"{best_power}" if best_power else "MISS"
-            arena_debug.save(hsv_band_crop, f"hsv_power_band{band_idx+1}_{status_label}")
-
-            if not best_power:
-                self._debug_log(f"  Band {band_idx + 1} Y={band_top}-{band_bot} -> no valid read")
-                continue
-
-            y_pos = (band_top + band_bot) // 2
-
-            too_close = any(abs(y_pos - used_y) < 30 for used_y in used_y_positions)
-            if too_close:
-                continue
-
-            used_y_positions.add(y_pos)
-            powers.append({
-                'power': best_power,
-                'y_position': y_pos,
-                'raw_text': best_text,
+# New calibration-based team power detection
+# This will replace the find_team_powers_hsv method
+
+def find_team_powers_hsv_calibrated(self, image, debug_dir=None, debug_prefix=''):
+    """
+    Find team power values using calibration data.
+
+    Uses calibrated offsets from "Power" text to know exactly where
+    team power numbers and level badges are located.
+
+    Args:
+        image: BGR image (the OCR region crop)
+        debug_dir: If set, save debug images
+        debug_prefix: Prefix for debug filenames
+
+    Returns:
+        List of dicts with 'power' (int), 'level' (int), and 'y_position' (int)
+    """
+    import json
+    import os
+    from config import SCRIPT_DIR
+
+    height, width = image.shape[:2]
+
+    # Step 1: Load calibration data
+    calibration_path = os.path.join(SCRIPT_DIR, 'arena_ocr_calibration.json')
+
+    try:
+        with open(calibration_path, 'r') as f:
+            calibration = json.load(f)
+
+        team_power_offset_x = calibration['team_power_offset_x']
+        team_power_offset_y = calibration['team_power_offset_y']
+        level_offset_x = calibration['level_offset_x']
+        level_offset_y = calibration['level_offset_y']
+
+        self._debug_log(f"  [CALIBRATION] Team Power offset: ({team_power_offset_x:+d}, {team_power_offset_y:+d})")
+        self._debug_log(f"  [CALIBRATION] Level offset: ({level_offset_x:+d}, {level_offset_y:+d})")
+    except Exception as e:
+        self._debug_log(f"  [ERROR] Failed to load calibration: {e}")
+        self._debug_log(f"  [ERROR] Run 'python calibrate_arena_ocr.py' first!")
+        return []
+
+    # Step 2: HSV filter for better OCR
+    if len(image.shape) == 3:
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        white_mask = (hsv[:, :, 2] > 180) & (hsv[:, :, 1] < 80)
+        filtered = np.where(white_mask, 255, 0).astype(np.uint8)
+        strict_mask = (hsv[:, :, 2] > 200) & (hsv[:, :, 1] < 50)
+        filtered_strict = np.where(strict_mask, 255, 0).astype(np.uint8)
+        relaxed_mask = (hsv[:, :, 2] > 160) & (hsv[:, :, 1] < 100)
+        filtered_relaxed = np.where(relaxed_mask, 255, 0).astype(np.uint8)
+        filter_variants = [filtered, filtered_strict, filtered_relaxed]
+    else:
+        _, filtered = cv2.threshold(image, 180, 255, cv2.THRESH_BINARY)
+        filter_variants = [filtered]
+
+    # Step 3: Upscale and OCR to find all "Power" text instances
+    filtered_upscaled = cv2.resize(filtered, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+
+    ocr_config = '--psm 6'  # Assume uniform block of text
+    try:
+        ocr_result = pytesseract.image_to_data(
+            filtered_upscaled,
+            config=ocr_config,
+            output_type=pytesseract.Output.DICT
+        )
+    except Exception as e:
+        self._debug_log(f"  [ERROR] OCR exception: {e}")
+        return []
+
+    # Step 4: Find all "Power" text instances
+    power_instances = []
+    for i, text in enumerate(ocr_result['text']):
+        if not text:
+            continue
+
+        text_lower = text.lower()
+        if 'power' in text_lower or 'fower' in text_lower or 'pover' in text_lower:
+            # Get center of "Power" text (scaled back to original size)
+            left = ocr_result['left'][i] // 2
+            top = ocr_result['top'][i] // 2
+            w = ocr_result['width'][i] // 2
+            h = ocr_result['height'][i] // 2
+
+            power_center_x = left + w // 2
+            power_center_y = top + h // 2
+
+            # Calculate where team power number should be
+            team_power_x = power_center_x + team_power_offset_x
+            team_power_y = power_center_y + team_power_offset_y
+
+            # Calculate where level should be
+            level_x = power_center_x + level_offset_x
+            level_y = power_center_y + level_offset_y
+
+            power_instances.append({
+                'power_pos': (power_center_x, power_center_y),
+                'team_power_pos': (team_power_x, team_power_y),
+                'level_pos': (level_x, level_y),
+                'power_box': (left, top, w, h)
             })
-            votes = dict(Counter(r[0] for r in all_reads))
-            self._debug_log(f"  Band {band_idx + 1} Y={band_top}-{band_bot} ->{best_power:,} ('{best_text}') votes={votes}")
 
-        # Save the annotated bands image after all bands processed
-        if debug_dir:
-            cv2.imwrite(os.path.join(debug_dir, f'{debug_prefix}hsv_bands.png'), debug_img)
+            self._debug_log(f"  [POWER] Found at ({power_center_x}, {power_center_y}), "
+                          f"team_power@({team_power_x}, {team_power_y}), "
+                          f"level@({level_x}, {level_y})")
 
-        self._debug_log(f"  HSV scan found {len(powers)} power values")
-        return powers
+    self._debug_log(f"  Found {len(power_instances)} 'Power' instances")
+
+    if not power_instances:
+        return []
+
+    # Step 5: OCR team power numbers at each calibrated position
+    results = []
+    whitelist_power = '--psm 7 -c tessedit_char_whitelist=0123456789.,K'
+    whitelist_level = '--psm 7 -c tessedit_char_whitelist=0123456789'
+
+    for idx, instance in enumerate(power_instances):
+        tp_x, tp_y = instance['team_power_pos']
+        lv_x, lv_y = instance['level_pos']
+
+        # OCR team power number
+        # Crop a region around the expected position
+        crop_width = 150  # Enough for "300.55K"
+        crop_height = 20
+
+        x1 = max(0, tp_x - 5)
+        y1 = max(0, tp_y - crop_height // 2)
+        x2 = min(width, tp_x + crop_width)
+        y2 = min(height, tp_y + crop_height // 2)
+
+        power_value = None
+        power_text = None
+
+        # Try OCR with multiple filter variants
+        for filt_img in filter_variants:
+            power_crop = filt_img[y1:y2, x1:x2]
+
+            if power_crop.shape[0] < 5 or power_crop.shape[1] < 10:
+                continue
+
+            # Upscale for better OCR
+            power_crop = np.ascontiguousarray(power_crop)
+            padded = cv2.copyMakeBorder(power_crop, 10, 10, 5, 5, cv2.BORDER_CONSTANT, value=0)
+            upscaled = cv2.resize(padded, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
+
+            try:
+                raw_text = pytesseract.image_to_string(upscaled, config=whitelist_power).strip().lstrip('., ')
+            except Exception:
+                continue
+
+            if not raw_text or not re.match(r'\d', raw_text):
+                continue
+
+            match = re.match(r'^([\d,\.]+[K]?)$', raw_text)
+            if not match:
+                continue
+
+            raw_power = match.group(1)
+            power = self._parse_power_string(raw_power)
+
+            if power and 1000 <= power <= 999000:
+                power_value = power
+                power_text = raw_text
+                self._debug_log(f"  [POWER #{idx+1}] Read: {power:,} from '{raw_text}'")
+                break
+
+        # OCR player level
+        crop_size = 30  # Level badge is small
+
+        lx1 = max(0, lv_x - crop_size // 2)
+        ly1 = max(0, lv_y - crop_size // 2)
+        lx2 = min(width, lv_x + crop_size // 2)
+        ly2 = min(height, lv_y + crop_size // 2)
+
+        level_value = None
+
+        for filt_img in filter_variants:
+            level_crop = filt_img[ly1:ly2, lx1:lx2]
+
+            if level_crop.shape[0] < 5 or level_crop.shape[1] < 5:
+                continue
+
+            # Upscale heavily for small level numbers
+            level_crop = np.ascontiguousarray(level_crop)
+            padded = cv2.copyMakeBorder(level_crop, 10, 10, 10, 10, cv2.BORDER_CONSTANT, value=0)
+            upscaled = cv2.resize(padded, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
+
+            try:
+                raw_text = pytesseract.image_to_string(upscaled, config=whitelist_level).strip()
+            except Exception:
+                continue
+
+            if not raw_text or not raw_text.isdigit():
+                continue
+
+            level = int(raw_text)
+            if 30 <= level <= 100:
+                level_value = level
+                self._debug_log(f"  [LEVEL #{idx+1}] Read: {level}")
+                break
+
+        # Only add if we got both power and level
+        if power_value and level_value:
+            results.append({
+                'power': power_value,
+                'level': level_value,
+                'y_position': int(tp_y),
+                'power_text': power_text
+            })
+            self._debug_log(f"  ✓ Opponent #{idx+1}: Power={power_value:,}, Level={level_value}")
+        elif power_value:
+            self._debug_log(f"  ! Opponent #{idx+1}: Power={power_value:,}, Level=? (OCR failed)")
+        else:
+            self._debug_log(f"  ✗ Opponent #{idx+1}: Failed to read power")
+
+    # Save debug image
+    if debug_dir:
+        import os
+        debug_img = cv2.cvtColor(filtered, cv2.COLOR_GRAY2BGR)
+
+        for idx, instance in enumerate(power_instances):
+            px, py = instance['power_pos']
+            tp_x, tp_y = instance['team_power_pos']
+            lv_x, lv_y = instance['level_pos']
+
+            # Draw Power box (green)
+            left, top, w, h = instance['power_box']
+            cv2.rectangle(debug_img, (left, top), (left + w, top + h), (0, 255, 0), 2)
+
+            # Draw team power location (blue)
+            cv2.circle(debug_img, (tp_x, tp_y), 5, (255, 0, 0), -1)
+            cv2.line(debug_img, (px, py), (tp_x, tp_y), (255, 128, 0), 1)
+
+            # Draw level location (red)
+            cv2.circle(debug_img, (lv_x, lv_y), 5, (0, 0, 255), -1)
+            cv2.line(debug_img, (px, py), (lv_x, lv_y), (128, 0, 255), 1)
+
+        cv2.imwrite(os.path.join(debug_dir, f'{debug_prefix}calibrated_detection.png'), debug_img)
+
+    self._debug_log(f"  Calibrated scan found {len(results)} complete opponents (power + level)")
+    return results
 
     def find_player_levels_hsv(self, image, debug_dir=None, debug_prefix='',
                                power_y_hints=None):
@@ -1501,7 +1151,10 @@ class TextRecognizer:
                     except ValueError:
                         continue
 
-                    if 1 <= val <= 100:
+                    # Arena opponents are never below level 30
+                    # Single-digit reads (1-9) are OCR errors from misreading
+                    # the tens digit (e.g., 70→7, 80→8, 100→1 or 0)
+                    if 30 <= val <= 100:
                         all_reads.append(val)
                         if filter_pass == 0:
                             strict_reads.append(val)
@@ -1540,13 +1193,6 @@ class TextRecognizer:
                 label = str(best_level) if best_level else '?'
                 cv2.putText(debug_img, label, (2, target_y - est_band_h // 2 - 3),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 1)
-
-            # Save level OCR crop for debugging
-            if best_band:
-                bt, bb = best_band
-                lvl_crop = filtered[bt:bb, x_crop_start:]
-                result_label = f"L{best_level}" if best_level else "FAIL"
-                arena_debug.save(lvl_crop, f"hsv_level_pos{pos_idx+1}_{result_label}")
 
             if best_level is None:
                 self._debug_log(f"  [LVL] Pos {pos_idx + 1} Y={target_y} -> no valid read (0 reads)")

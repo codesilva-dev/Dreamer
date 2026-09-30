@@ -1,0 +1,18 @@
+{
+  "team_power_window": {
+    "offset_x": 28,
+    "offset_y": -8,
+    "width": 75,
+    "height": 17
+  },
+  "level_window": {
+    "offset_x": -1030,
+    "offset_y": -24,
+    "width": 30,
+    "height": 15
+  },
+  "reference_power_center": [
+    1323,
+    417
+  ]
+}

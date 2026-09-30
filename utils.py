@@ -2,7 +2,7 @@ import os
 import logging
 from datetime import datetime
 from PyQt5.QtWidgets import QMessageBox, QApplication
-from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtGui import QPixmap, QImage, QCursor
 from PyQt5.QtCore import Qt
 
 import numpy as np
@@ -96,3 +96,15 @@ def reset_home_screen_zoom(window_capture, clicker):
     clicker.natural_delay(0.2)
     pyautogui.mouseUp()
     clicker.natural_delay(0.5)
+
+
+# ── Cursor hiding ──────────────────────────────────────────────────
+
+def hide_cursor():
+    """Hide the mouse cursor globally."""
+    QApplication.setOverrideCursor(Qt.BlankCursor)
+
+
+def show_cursor():
+    """Restore the mouse cursor."""
+    QApplication.restoreOverrideCursor()

@@ -4,7 +4,12 @@
       "Bash(python -c:*)",
       "Bash(pip install:*)",
       "Bash(ls -la \"e:\\\\Projects\\\\Misc\\\\Dreamer\\\\templates\"\" | grep -i \"cb|clan \")",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(git checkout:*)",
+      "Bash(git stash:*)",
+      "Bash(grep:*)"
     ]
   }
 }

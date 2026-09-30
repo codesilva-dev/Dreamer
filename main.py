@@ -14,7 +14,7 @@ from PyQt5.QtCore import Qt, QTimer
 from window_capture import WindowCapture
 from template_matcher import TemplateMatcher
 from region_selection import RegionSelectionWindow
-from utils import log_message, show_preview, show_error, show_info
+from utils import log_message, show_preview, show_error, show_info, hide_cursor, show_cursor
 from config import (
     GAME_WINDOW_TITLE, TEMPLATES_DIR,
     CLICK_DELAY, TEMPLATE_BATTLE, TEMPLATE_ARENA, TEMPLATE_CLASSIC_ARENA,
@@ -174,6 +174,13 @@ class DreamerApp(QWidget):
         self.log_output = QTextEdit()
         self.log_output.setReadOnly(True)
         self.log_output.setStyleSheet('font-family: Consolas, monospace; font-size: 11pt;')
+
+        # Arena status display (for opponent table)
+        self.arena_status = QTextEdit()
+        self.arena_status.setReadOnly(True)
+        self.arena_status.setStyleSheet('font-family: Consolas, monospace; font-size: 9pt; background-color: #1e1e1e; color: #d4d4d4;')
+        self.arena_status.setMaximumHeight(600)  # Increased from 350 to see full opponent list
+        self.arena_status.setVisible(False)  # Hidden until arena scan runs
 
         # ── Tab widget ──
         tabs = QTabWidget()
@@ -486,10 +493,19 @@ class DreamerApp(QWidget):
         self._refresh_macro_list()
 
         # ============================================================
-        # Main layout: tabs on top, log always visible below
+        # Main layout: tabs on top, arena status in middle, log at bottom
         # ============================================================
         layout = QVBoxLayout()
         layout.addWidget(tabs, stretch=1)
+
+        # Arena status section (collapsible, shown during arena scans)
+        arena_status_label = QLabel('Arena Scan Results:')
+        arena_status_label.setStyleSheet('font-weight: bold; font-size: 12pt;')
+        self.arena_status_label = arena_status_label
+        self.arena_status_label.setVisible(False)
+        layout.addWidget(self.arena_status_label)
+        layout.addWidget(self.arena_status)
+
         log_label = QLabel('Log:')
         log_label.setStyleSheet('font-weight: bold; font-size: 12pt;')
         layout.addWidget(log_label)
@@ -498,7 +514,20 @@ class DreamerApp(QWidget):
     
     def log(self, message):
         log_message(self, message)
-    
+
+    def update_arena_status(self, text):
+        """Update the arena status display (thread-safe via QTimer)"""
+        def _update():
+            if text:
+                self.arena_status.setPlainText(text)
+                self.arena_status.setVisible(True)
+                self.arena_status_label.setVisible(True)
+            else:
+                self.arena_status.setVisible(False)
+                self.arena_status_label.setVisible(False)
+
+        QTimer.singleShot(0, _update)
+
     def request_stop(self):
         """Request stop of running sequence"""
         self.stop_requested = True
@@ -819,12 +848,23 @@ region = (x, y, width, height)
 
     # ─── Run Methods ─────────────────────────────────────────────────
 
+    def _with_hidden_cursor(self, func):
+        """Wrapper to hide cursor during execution and restore after."""
+        try:
+            hide_cursor()
+            func()
+        finally:
+            show_cursor()
+
     def run_classic_arena(self):
         """Navigate from home to Classic Arena and run the full battle sequence."""
         try:
             self.stop_requested = False
             self.stop_btn.setEnabled(True)
             self.run_classic_arena_btn.setEnabled(False)
+
+            # Hide cursor to prevent interference
+            hide_cursor()
 
             self.log('')
             self.log('  Navigating to Classic Arena...')
@@ -848,7 +888,17 @@ region = (x, y, width, height)
                 if success:
                     self.log(f'  Clicked "{step_name}"')
                 else:
-                    self.log(f'  Failed to find "{step_name}" — aborting')
+                    # Save debug screenshot when navigation fails
+                    import cv2
+                    from config import SCRIPT_DIR
+                    img = self.window_capture.capture()
+                    if img is not None:
+                        debug_path = os.path.join(SCRIPT_DIR, 'debug', f'nav_failed_{step_name.replace(" ", "_").lower()}.png')
+                        cv2.imwrite(debug_path, img)
+                        self.log(f'  Failed to find "{step_name}" — aborting')
+                        self.log(f'  Screenshot saved to debug/nav_failed_{step_name.replace(" ", "_").lower()}.png')
+                    else:
+                        self.log(f'  Failed to find "{step_name}" — aborting')
                     return
 
             self.log('  Reached Classic Arena')
@@ -858,7 +908,8 @@ region = (x, y, width, height)
             v2 = ClassicArenaSequenceV2(
                 self.window_capture, self.template_matcher,
                 self.text_recognizer, self.log,
-                stop_check=self.is_stop_requested
+                stop_check=self.is_stop_requested,
+                arena_status_callback=self.update_arena_status
             )
             v2.run()
 
@@ -867,6 +918,8 @@ region = (x, y, width, height)
             self.log(f'Error: {e}')
             self.log(traceback.format_exc())
         finally:
+            # Restore cursor
+            show_cursor()
             self.stop_btn.setEnabled(False)
             self.stop_requested = False
             self.run_classic_arena_btn.setEnabled(True)
@@ -877,6 +930,7 @@ region = (x, y, width, height)
             self.stop_requested = False
             self.stop_btn.setEnabled(True)
             self.run_free_shop_btn.setEnabled(False)
+            hide_cursor()
 
             seq = FreeShopItemsSequence(
                 self.window_capture, self.template_matcher,
@@ -890,6 +944,7 @@ region = (x, y, width, height)
             self.log(f'Error: {e}')
             self.log(traceback.format_exc())
         finally:
+            show_cursor()
             self.stop_btn.setEnabled(False)
             self.stop_requested = False
             self.run_free_shop_btn.setEnabled(True)
@@ -900,6 +955,7 @@ region = (x, y, width, height)
             self.stop_requested = False
             self.stop_btn.setEnabled(True)
             self.run_bypass_junk_btn.setEnabled(False)
+            hide_cursor()
 
             seq = DismissJunkOffersSequence(
                 self.window_capture, self.template_matcher,
@@ -912,6 +968,7 @@ region = (x, y, width, height)
             self.log(f'Error: {e}')
             self.log(traceback.format_exc())
         finally:
+            show_cursor()
             self.stop_btn.setEnabled(False)
             self.stop_requested = False
             self.run_bypass_junk_btn.setEnabled(True)
@@ -934,6 +991,7 @@ region = (x, y, width, height)
             self.log(f'Error: {e}')
             self.log(traceback.format_exc())
         finally:
+            show_cursor()
             self.stop_btn.setEnabled(False)
             self.stop_requested = False
             self.run_guardian_btn.setEnabled(True)
@@ -944,6 +1002,7 @@ region = (x, y, width, height)
             self.stop_requested = False
             self.stop_btn.setEnabled(True)
             self.run_collect_gem_btn.setEnabled(False)
+            hide_cursor()
 
             seq = CollectGemSequence(
                 self.window_capture, self.template_matcher,
@@ -956,6 +1015,7 @@ region = (x, y, width, height)
             self.log(f'Error: {e}')
             self.log(traceback.format_exc())
         finally:
+            show_cursor()
             self.stop_btn.setEnabled(False)
             self.stop_requested = False
             self.run_collect_gem_btn.setEnabled(True)
@@ -966,6 +1026,7 @@ region = (x, y, width, height)
             self.stop_requested = False
             self.stop_btn.setEnabled(True)
             self.run_menu_rewards_btn.setEnabled(False)
+            hide_cursor()
 
             seq = MenuRewardsSequence(
                 self.window_capture, self.template_matcher,
@@ -978,6 +1039,7 @@ region = (x, y, width, height)
             self.log(f'Error: {e}')
             self.log(traceback.format_exc())
         finally:
+            show_cursor()
             self.stop_btn.setEnabled(False)
             self.stop_requested = False
             self.run_menu_rewards_btn.setEnabled(True)
@@ -988,6 +1050,7 @@ region = (x, y, width, height)
             self.stop_requested = False
             self.stop_btn.setEnabled(True)
             self.run_check_market_btn.setEnabled(False)
+            hide_cursor()
 
             seq = CheckMarketSequence(
                 self.window_capture, self.template_matcher,
@@ -1000,6 +1063,7 @@ region = (x, y, width, height)
             self.log(f'Error: {e}')
             self.log(traceback.format_exc())
         finally:
+            show_cursor()
             self.stop_btn.setEnabled(False)
             self.stop_requested = False
             self.run_check_market_btn.setEnabled(True)
@@ -1022,6 +1086,7 @@ region = (x, y, width, height)
             self.log(f'Error: {e}')
             self.log(traceback.format_exc())
         finally:
+            show_cursor()
             self.stop_btn.setEnabled(False)
             self.stop_requested = False
             self.run_playtime_btn.setEnabled(True)
@@ -1032,6 +1097,7 @@ region = (x, y, width, height)
             self.stop_requested = False
             self.stop_btn.setEnabled(True)
             self.run_quests_btn.setEnabled(False)
+            hide_cursor()
 
             seq = QuestsSequence(
                 self.window_capture, self.template_matcher,
@@ -1044,6 +1110,7 @@ region = (x, y, width, height)
             self.log(f'Error: {e}')
             self.log(traceback.format_exc())
         finally:
+            show_cursor()
             self.stop_btn.setEnabled(False)
             self.stop_requested = False
             self.run_quests_btn.setEnabled(True)
@@ -1054,6 +1121,7 @@ region = (x, y, width, height)
             self.stop_requested = False
             self.stop_btn.setEnabled(True)
             self.run_sum3_btn.setEnabled(False)
+            hide_cursor()
 
             seq = Sum3Sequence(
                 self.window_capture, self.template_matcher,
@@ -1066,6 +1134,7 @@ region = (x, y, width, height)
             self.log(f'Error: {e}')
             self.log(traceback.format_exc())
         finally:
+            show_cursor()
             self.stop_btn.setEnabled(False)
             self.stop_requested = False
             self.run_sum3_btn.setEnabled(True)
@@ -1076,6 +1145,7 @@ region = (x, y, width, height)
             self.stop_requested = False
             self.stop_btn.setEnabled(True)
             self.run_iron_twins_btn.setEnabled(False)
+            hide_cursor()
 
             # Check daily reset and key availability
             self._check_daily_reset()
@@ -1104,6 +1174,7 @@ region = (x, y, width, height)
             self.log(f'Error: {e}')
             self.log(traceback.format_exc())
         finally:
+            show_cursor()
             self.stop_btn.setEnabled(False)
             self.stop_requested = False
             self.run_iron_twins_btn.setEnabled(True)
@@ -1114,6 +1185,7 @@ region = (x, y, width, height)
             self.stop_requested = False
             self.stop_btn.setEnabled(True)
             self.run_cb_main_btn.setEnabled(False)
+            hide_cursor()
 
             seq = ClanBossSequence(
                 self.window_capture, self.template_matcher,
@@ -1126,6 +1198,7 @@ region = (x, y, width, height)
             self.log(f'Error: {e}')
             self.log(traceback.format_exc())
         finally:
+            show_cursor()
             self.stop_btn.setEnabled(False)
             self.stop_requested = False
             self.run_cb_main_btn.setEnabled(True)
@@ -1515,7 +1588,8 @@ region = (x, y, width, height)
         v2 = ClassicArenaSequenceV2(
             self.window_capture, self.template_matcher,
             self.text_recognizer, self._daily_log,
-            stop_check=self.is_stop_requested
+            stop_check=self.is_stop_requested,
+            arena_status_callback=self.update_arena_status
         )
         # Use skip_refresh_wait=True so arena returns early when refresh unavailable
         result = v2.run(skip_refresh_wait=True)

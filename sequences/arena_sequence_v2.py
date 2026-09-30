@@ -36,12 +36,13 @@ class ClassicArenaSequenceV2:
     """
 
     def __init__(self, window_capture, template_matcher, text_recognizer,
-                 log_func=None, stop_check=None):
+                 log_func=None, stop_check=None, arena_status_callback=None):
         self.window_capture = window_capture
         self.template_matcher = template_matcher
         self.text_recognizer = text_recognizer
         self.log = log_func or print
         self.stop_check = stop_check
+        self.arena_status_callback = arena_status_callback
         self.clicker = NaturalClick()
         self.tokens_exhausted = False  # Track if arena tokens are exhausted
 
@@ -58,6 +59,85 @@ class ClassicArenaSequenceV2:
 
     def should_stop(self):
         return self.stop_check and self.stop_check()
+
+    def _display_opponent_table(self, all_opponents, targets):
+        """
+        Display a clean table of all opponents with targets highlighted in green.
+        Shows opponents in SCAN ORDER (top to bottom as they appeared in arena list).
+
+        Args:
+            all_opponents: Full list of scanned opponents (sorted by power for battle)
+            targets: Filtered list of opponents that will be fought
+        """
+        # Create set of target powers for quick lookup
+        target_powers = {o['power'] for o in targets}
+
+        # Sort by scan_index to show in original scan order (NOT power order)
+        display_opponents = sorted(all_opponents, key=lambda x: x.get('scan_index', 0))
+
+        # Build table for UI (plain text, no ANSI codes)
+        ui_lines = []
+        ui_lines.append("╔═══════════════════════════════════════════════════════╗")
+        ui_lines.append("║      ARENA OPPONENTS (in scan order)                  ║")
+        ui_lines.append("╠═════╦════════════╦═══════╦═══════════════════════════╣")
+        ui_lines.append("║  #  ║   Power    ║ Level ║         Status            ║")
+        ui_lines.append("╠═════╬════════════╬═══════╬═══════════════════════════╣")
+
+        # Rows - show in scan order for debugging
+        for i, opp in enumerate(display_opponents, 1):
+            power = opp['power']
+            level = opp.get('level')
+            level_str = f"L{level}" if level else "?"
+
+            # Determine status
+            if not opp.get('available', True):
+                status = "Already defeated"
+            elif power in target_powers:
+                status = "✓ WILL FIGHT"
+            else:
+                status = "Skipped (filters)"
+
+            # Format row with proper spacing
+            power_str = f"{power:,}".rjust(10)
+            level_str = level_str.center(5)
+
+            ui_lines.append(f"║ {i:3d} ║ {power_str} ║ {level_str} ║ {status:25s} ║")
+
+        # Footer
+        ui_lines.append("╚═════╩════════════╩═══════╩═══════════════════════════╝")
+        ui_lines.append("")
+
+        # Summary
+        total = len(all_opponents)
+        will_fight = len(targets)
+        defeated = sum(1 for o in all_opponents if not o.get('available', True))
+        filtered = total - defeated - will_fight
+
+        ui_lines.append(f"Summary: {total} total opponents")
+        ui_lines.append(f"         {will_fight} will be fought")
+        ui_lines.append(f"         {defeated} already defeated")
+        ui_lines.append(f"         {filtered} filtered out")
+
+        # Send to UI if callback available
+        if self.arena_status_callback:
+            self.arena_status_callback('\n'.join(ui_lines))
+
+        # Also log a simplified version
+        self.log("")
+        self.log(f"  📋 Scan Results: {total} opponents found")
+        self.log(f"     • {will_fight} will be fought")
+        self.log(f"     • {defeated} already defeated")
+        self.log(f"     • {filtered} filtered out")
+        self.log("")
+
+        # Print full opponent list for debugging (in scan order)
+        self.log("  📋 Full Opponent List (scan order):")
+        for i, opp in enumerate(display_opponents, 1):
+            level_str = f"L{opp['level']}" if opp['level'] else "L?"
+            status = "✓" if opp.get('available', True) else "✗"
+            target = "→" if opp['power'] in target_powers else " "
+            self.log(f"     {target} {i:2d}. {status} {opp['power']:7,} power {level_str:4s}")
+        self.log("")
 
     def filter_and_sort_targets(self, opponents):
         """
@@ -76,8 +156,6 @@ class ClassicArenaSequenceV2:
         # Filter defeated
         available = [o for o in opponents if o.get('available', True)]
         defeated = len(opponents) - len(available)
-        if defeated > 0:
-            self.log(f"  Filtered out {defeated} already defeated")
 
         max_power = config.ARENA_MAX_OPPONENT_POWER
         max_level = config.ARENA_MAX_OPPONENT_LEVEL
@@ -85,7 +163,6 @@ class ClassicArenaSequenceV2:
 
         # Combined filter: (power AND level) OR or_power
         if max_power > 0 or max_level > 0 or or_power > 0:
-            before = len(available)
             filtered = []
             for o in available:
                 power = o['power']
@@ -111,41 +188,79 @@ class ClassicArenaSequenceV2:
 
             available = filtered
 
-            # Log what filters were applied
-            parts = []
-            if max_power > 0:
-                parts.append(f"power ≤ {max_power:,}")
-            if max_level > 0:
-                parts.append(f"level ≤ L{max_level}")
-            filter_desc = ' AND '.join(parts) if parts else 'none'
-            if or_power > 0:
-                filter_desc += f" OR power ≤ {or_power:,}"
-            self.log(f"  Filter ({filter_desc}): {before} → {len(available)}")
-
         # Sort
         available.sort(key=lambda x: x['power'],
                        reverse=not config.ARENA_ATTACK_WEAKEST_FIRST)
 
-        order = "weakest first" if config.ARENA_ATTACK_WEAKEST_FIRST else "strongest first"
-        self.log(f"  Targets ({order}): {len(available)}")
-        if available:
-            powers = [f"{o['power']:,}" for o in available[:8]]
-            if len(available) > 8:
-                powers.append(f"...+{len(available) - 8} more")
-            self.log(f"    {', '.join(powers)}")
+        # Display nice table showing all opponents and which will be fought
+        self._display_opponent_table(opponents, available)
 
         return available
 
     def click_refresh_list(self):
         """Click the free Refresh button. Never clicks paid refresh to avoid spending gems."""
-        success, _ = self.template_matcher.find_and_click(
-            TEMPLATE_FREE_REFRESH, threshold=0.8, wait_after=2.0
+        # First check if template exists with find_template to get match score
+        found, location, size = self.template_matcher.find_template(
+            TEMPLATE_FREE_REFRESH, threshold=0.8
         )
-        if success:
+
+        if found:
+            # Click it
+            self.template_matcher.click_at_offset(
+                location[0], location[1], wait_after=2.0
+            )
             self.log(f"  Refreshing opponent list (free)...")
             return True
 
-        self.log(f"  No free refresh available")
+        # Debug: save screenshot when refresh not found
+        import os
+        import cv2
+        from config import SCRIPT_DIR
+
+        # Get the best match score even if below threshold
+        img = self.window_capture.capture()
+        if img is not None:
+            # Save full screenshot
+            debug_path = os.path.join(SCRIPT_DIR, 'debug', 'refresh_not_found_full.png')
+            cv2.imwrite(debug_path, img)
+
+            # Find where the refresh button should be and crop that area
+            template = cv2.imread(TEMPLATE_FREE_REFRESH, cv2.IMREAD_COLOR)
+            if template is not None:
+                result = cv2.matchTemplate(img, template, cv2.TM_CCOEFF_NORMED)
+                _, max_val, _, max_loc = cv2.minMaxLoc(result)
+
+                # Crop around the best match location (even if below threshold)
+                h, w = template.shape[:2]
+                height, width = img.shape[:2]
+
+                # Expand the crop area around the best match
+                x1 = max(0, max_loc[0] - 50)
+                y1 = max(0, max_loc[1] - 50)
+                x2 = min(width, max_loc[0] + w + 50)
+                y2 = min(height, max_loc[1] + h + 50)
+
+                crop = img[y1:y2, x1:x2]
+                crop_path = os.path.join(SCRIPT_DIR, 'debug', 'refresh_button_area.png')
+                cv2.imwrite(crop_path, crop)
+
+                # Draw rectangle on full image showing where we looked
+                img_marked = img.copy()
+                cv2.rectangle(img_marked, (max_loc[0], max_loc[1]),
+                             (max_loc[0] + w, max_loc[1] + h), (0, 255, 0), 2)
+                marked_path = os.path.join(SCRIPT_DIR, 'debug', 'refresh_not_found_marked.png')
+                cv2.imwrite(marked_path, img_marked)
+
+                self.log(f"  No free refresh available (best match: {max_val:.3f}, threshold: 0.8)")
+                self.log(f"  Debug images saved:")
+                self.log(f"    - debug/refresh_not_found_full.png")
+                self.log(f"    - debug/refresh_not_found_marked.png (shows best match location)")
+                self.log(f"    - debug/refresh_button_area.png (cropped region)")
+            else:
+                self.log(f"  No free refresh available (template file not found)")
+        else:
+            self.log(f"  No free refresh available (screenshot failed)")
+
         return False
 
     def _navigate_home(self):
@@ -235,11 +350,19 @@ class ClassicArenaSequenceV2:
         token_status = self.battle_runner.ensure_arena_tokens()
         if token_status == 'no_tokens':
             self.log('  Out of arena tokens — session complete')
+            self.tokens_exhausted = True
             return False
 
         # Have tokens but refresh failed — try once more
         self.log('  Refresh still unavailable — retrying...')
-        return self.click_refresh_list()
+        if self.click_refresh_list():
+            self.scanner._cleanup_snapshots()
+            return True
+
+        # No refresh available but we have tokens — continue with same list
+        self.log('  No refresh available, but arena tokens remain')
+        self.log('  Continuing with current opponent list...')
+        return True
 
     def run(self, scan_only=False, test_single_attack=False, max_battles=None, skip_refresh_wait=False):
         """
@@ -305,6 +428,7 @@ class ClassicArenaSequenceV2:
             # ── FULL CONTINUOUS LOOP ───────────────────────────────
             total_battles = 0
             cycle = 0
+            consecutive_no_targets = 0
 
             while True:
                 if self.should_stop():
@@ -324,16 +448,27 @@ class ClassicArenaSequenceV2:
                     self.log('  No opponents found — refreshing...')
                     if not self._refresh_or_wait():
                         break
+                    consecutive_no_targets = 0
                     continue
 
                 # Phase 2: Sort & filter
                 targets = self.filter_and_sort_targets(opponents)
 
                 if not targets:
-                    self.log('  No available targets — refreshing...')
+                    consecutive_no_targets += 1
+                    self.log(f'  No available targets — refreshing... (attempt {consecutive_no_targets})')
+
+                    # If we've tried 3 times and still no targets, we're done
+                    if consecutive_no_targets >= 3:
+                        self.log('  All opponents defeated or filtered out — session complete')
+                        break
+
                     if not self._refresh_or_wait():
                         break
                     continue
+
+                # Reset counter when we find targets
+                consecutive_no_targets = 0
 
                 # Snapshot first opponent for list-change detection
                 self.scanner.scroll_to_top_fast()

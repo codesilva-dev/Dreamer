@@ -211,12 +211,11 @@ FLUID_LEVEL_REGION = {
 # Duration of the scroll drag for fluid scanning
 FLUID_SCROLL_DRAG_DURATION = 0.6
 
-# Broader scroll region for fluid scanning (covers more list area per scroll)
-FLUID_SCROLL_REGION = {
-    'x_center': 0.50,   # Center X for scroll drag
-    'y_start': 0.35,    # Scroll destination (higher up = broader scroll)
-    'y_end': 0.80,      # Scroll start (lower down = broader scroll)
-}
+# Broader scroll region for fluid scanning
+# Using pixels for exact scroll distance instead of percentages
+FLUID_SCROLL_PIXELS = 379  # Scroll distance in pixels (approx 52% of 700px window)
+FLUID_SCROLL_START_PERCENT = 0.80  # Start position (80% down the window)
+FLUID_SCROLL_X_CENTER = 0.50  # Horizontal center for scroll drag
 
 # =============================================================================
 # Iron Twins Settings

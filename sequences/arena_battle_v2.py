@@ -76,9 +76,12 @@ class ArenaBattleRunner:
             roi_frame = frame[roi_y:roi_y + roi_h, roi_x:roi_x + roi_w].copy()
 
             powers = self.text_recognizer.find_team_powers_hsv(roi_frame)
-            all_seen.update(p['power'] for p in powers)
 
-            for p in powers:
+            # Filter out invalid entries (should be dicts, not ints)
+            valid_powers = [p for p in powers if isinstance(p, dict) and 'power' in p]
+            all_seen.update(p['power'] for p in valid_powers)
+
+            for p in valid_powers:
                 if p['power'] == target_power:
                     y_pos = (p['y_position'] or 0) + roi_y
                     return y_pos, frozenset(all_seen)
@@ -429,32 +432,36 @@ class ArenaBattleRunner:
                 results['exit_reason'] = 'max_reached'
                 break
 
-            self.log(f"  [{i + 1}/{len(targets)}] Targeting Power {target['power']:,}")
+            level_str = f"L{target['level']}" if target.get('level') else ""
+            level_info = f" {level_str}" if level_str else ""
+            self.log(f"  ⚔️  Battle {i + 1}/{len(targets)}: {target['power']:,} power{level_info}")
 
             result = self.run_battle_flow(target['power'])
 
             if result == 'success':
                 results['completed'] += 1
                 consecutive_not_found = 0
-                self.log(f"    Battle {results['completed']} complete")
+                self.log(f"      ✓ Victory!")
             elif result == 'no_tokens':
                 results['exit_reason'] = 'no_tokens'
+                self.log(f"      ⚠️  Out of arena tokens")
                 break
             elif result == 'list_changed':
-                self.log(f"    List refreshed — stopping attack phase for rescan")
+                self.log(f"      ⚠️  List refreshed, stopping to rescan")
                 results['exit_reason'] = 'list_changed'
                 break
             elif result == 'not_found':
                 results['not_found'] += 1
                 consecutive_not_found += 1
+                self.log(f"      ✗ Opponent not found in list")
                 if consecutive_not_found >= 3:
-                    self.log(f"    3 consecutive not found — list likely refreshed")
+                    self.log(f"      ⚠️  List likely refreshed after 3 misses")
                     results['exit_reason'] = 'list_changed'
                     break
             else:
                 results['skipped'] += 1
                 consecutive_not_found = 0
-                self.log(f"    Skipped ({result})")
+                self.log(f"      ⊘ Skipped ({result})")
 
             if single_attack:
                 break
@@ -462,7 +469,8 @@ class ArenaBattleRunner:
         if results['exit_reason'] is None:
             results['exit_reason'] = 'all_done'
 
-        self.log(f"  Attack phase done: {results['completed']} battles, "
+        self.log(f"")
+        self.log(f"  📊 Results: {results['completed']} victories, "
                  f"{results['not_found']} not found, {results['skipped']} skipped")
 
         return results
