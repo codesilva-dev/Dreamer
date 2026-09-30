@@ -193,19 +193,13 @@ class ArenaListScanner:
         # Get the power OCR region bounds
         roi_x, roi_y, roi_w, roi_h = self.get_fluid_ocr_region(frame)
 
-        # Crop a band around the power text Y position
-        # Move up by 55%: was -30 to +60, now shift up by ~50px
-        # This captures more of the opponent portrait and team area
-        y_start = max(0, y_position - 80)
+        # CRITICAL: Use the SAME cropping as debug snapshots (scroll1_opp1_xxx.png)
+        # Those are the correct templates that work for matching!
+        y_start = max(0, y_position - 90)  # 100px total height
         y_end = min(frame_height, y_position + 10)
-
-        # Extend horizontally to include the battle button on the right
-        # Start from 35% into the OCR region (just before where numbers start)
-        # to avoid capturing champion level badges on the left side
-        # Extend 80px to the right of OCR region to capture battle button
         number_region_start = int(roi_w * 0.35)
-        x_start = roi_x + number_region_start
-        x_end = min(frame_width, roi_x + roi_w + 80)  # 80px beyond OCR region
+        x_start = roi_x + number_region_start - 130  # Moved 130px left
+        x_end = min(frame_width, roi_x + roi_w + 50)  # Reduced width
 
         snapshot = frame[y_start:y_end, x_start:x_end].copy()
 

@@ -781,7 +781,8 @@ class TextRecognizer:
                     pass
 
             if votes:
-                power_value = max(votes.items(), key=lambda x: x[1])[0]
+                # Pick the value with most votes; if tied, pick the highest value
+                power_value = max(votes.items(), key=lambda x: (x[1], x[0]))[0]
                 power_text = f"{power_value/1000:.2f}K"
                 self._debug_log(f"  Band {idx+1} -> {power_value:,} ('{power_text}') votes={votes}")
             else:

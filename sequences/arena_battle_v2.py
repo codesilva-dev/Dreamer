@@ -110,10 +110,12 @@ class ArenaBattleRunner:
 
         if not os.path.exists(template_path):
             # No snapshot saved for this target (might have been defeated already)
+            self.log(f"    [TEMPLATE] No snapshot found at {template_path}")
             return None
 
         template = cv2.imread(template_path)
         if template is None:
+            self.log(f"    [TEMPLATE] Failed to load image from {template_path}")
             return None
 
         template_h, template_w = template.shape[:2]
@@ -123,51 +125,115 @@ class ArenaBattleRunner:
         if frame is None:
             return None
 
-        # Get the power OCR region (where we'll search for the template)
+        # Get the power OCR region for vertical bounds
         roi_x, roi_y, roi_w, roi_h = self.scanner.get_fluid_ocr_region(frame)
-        search_region = frame[roi_y:roi_y + roi_h, roi_x:roi_x + roi_w]
+        frame_h, frame_w = frame.shape[:2]
+
+        # Search from 55% to 90% of screen width (where templates were captured)
+        # This matches the horizontal region where power values + battle buttons appear
+        search_x_start = int(frame_w * 0.55)
+        search_x_end = int(frame_w * 0.90)
+        search_region = frame[roi_y:roi_y + roi_h, search_x_start:search_x_end]
 
         # Template match
         result = cv2.matchTemplate(search_region, template, cv2.TM_CCOEFF_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
 
-        # High threshold for exact match (we saved this exact region during scan)
-        # Trust the template match - OCR is unreliable for verification
-        if max_val >= 0.85:
-            # max_loc is (x, y) in the search_region
-            match_y_in_region = max_loc[1] + template_h // 2
-            # Convert to frame coordinates
-            y_pos = roi_y + match_y_in_region
+        # Lower threshold to handle slight variations and OCR misreads
+        # If we're seeing 0.77 scores, opponent is there but template has minor differences
+        if max_val >= 0.75:
+            # max_loc[1] is the top of the match in search_region
+            # Template was cropped with power text at y_position, and template top at y_position - 90
+            # So to get back to y_position (power text location), we add 90 to the match top
+            match_top_in_roi = max_loc[1]  # Top of match in search_region (starts at roi_y)
+            y_pos = roi_y + match_top_in_roi + 90  # Add 90 to get to power text position
 
             self.log(f"    [TEMPLATE] Found at y={y_pos} (score={max_val:.3f})")
 
-            # Save debug image showing template match location
+            # Create detailed debug visualization
+            import numpy as np
+            debug_dir = os.path.join(SCRIPT_DIR, 'debug')
+            os.makedirs(debug_dir, exist_ok=True)
+
+            # Template with label
+            template_display = template.copy()
+            cv2.putText(template_display, f"Template {target_power}", (5, 20),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+
+            # Search region with match highlighted
+            search_display = search_region.copy()
+            cv2.putText(search_display, f"Search Region (score={max_val:.3f})", (5, 20),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+            cv2.rectangle(search_display,
+                         (max_loc[0], max_loc[1]),
+                         (max_loc[0] + template_w, max_loc[1] + template_h),
+                         (0, 255, 0), 2)
+
+            # Full frame with search region and match highlighted
             debug_frame = frame.copy()
-            # Draw rectangle around the matched template area (in search_region coords, convert to frame)
-            match_x_frame = roi_x + max_loc[0]
+            # Draw search region boundary (blue)
+            cv2.rectangle(debug_frame, (search_x_start, roi_y), (search_x_end, roi_y + roi_h), (255, 0, 0), 2)
+            # Draw match location (green)
+            match_x_frame = search_x_start + max_loc[0]
             match_y_frame = roi_y + max_loc[1]
             cv2.rectangle(debug_frame,
                          (match_x_frame, match_y_frame),
                          (match_x_frame + template_w, match_y_frame + template_h),
-                         (255, 0, 255), 3)  # Magenta rectangle around template match
-            cv2.circle(debug_frame, (match_x_frame + template_w // 2, y_pos), 10, (0, 255, 255), -1)  # Cyan dot at y_pos
-            debug_dir = os.path.join(SCRIPT_DIR, 'debug')
-            os.makedirs(debug_dir, exist_ok=True)
-            cv2.imwrite(os.path.join(debug_dir, 'arena_template_match.png'), debug_frame)
+                         (0, 255, 0), 3)
+
+            # Combine into single debug image: template | search_region | full_frame (scaled)
+            h_max = max(template_display.shape[0], search_display.shape[0])
+            template_padded = np.zeros((h_max, template_display.shape[1], 3), dtype=np.uint8)
+            template_padded[:template_display.shape[0], :] = template_display
+            search_padded = np.zeros((h_max, search_display.shape[1], 3), dtype=np.uint8)
+            search_padded[:search_display.shape[0], :] = search_display
+
+            top_row = np.hstack([template_padded, search_padded])
+            scale = top_row.shape[1] / debug_frame.shape[1] if debug_frame.shape[1] > top_row.shape[1] else 1.0
+            scaled_frame = cv2.resize(debug_frame, None, fx=scale, fy=scale)
+            combined = np.vstack([top_row, scaled_frame])
+
+            cv2.imwrite(os.path.join(debug_dir, f'arena_match_{target_power}.png'), combined)
 
             return y_pos
+
+        self.log(f"    [TEMPLATE] Match score too low: {max_val:.3f} < 0.75")
+
+        # Save debug showing why it didn't match
+        import numpy as np
+        debug_dir = os.path.join(SCRIPT_DIR, 'debug')
+        os.makedirs(debug_dir, exist_ok=True)
+
+        template_display = template.copy()
+        cv2.putText(template_display, f"Template {target_power}", (5, 20),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+
+        search_display = search_region.copy()
+        cv2.putText(search_display, f"NO MATCH (score={max_val:.3f})", (5, 20),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+        # Show best match location even though score is low (red)
+        cv2.rectangle(search_display,
+                     (max_loc[0], max_loc[1]),
+                     (max_loc[0] + template_w, max_loc[1] + template_h),
+                     (0, 0, 255), 2)
+
+        h_max = max(template_display.shape[0], search_display.shape[0])
+        template_padded = np.zeros((h_max, template_display.shape[1], 3), dtype=np.uint8)
+        template_padded[:template_display.shape[0], :] = template_display
+        search_padded = np.zeros((h_max, search_display.shape[1], 3), dtype=np.uint8)
+        search_padded[:search_display.shape[0], :] = search_display
+
+        combined = np.hstack([template_padded, search_padded])
+        cv2.imwrite(os.path.join(debug_dir, f'arena_nomatch_{target_power}.png'), combined)
 
         return None
 
     def scroll_and_find(self, target_power):
         """
-        Search for a target by scrolling and using template matching.
+        Search for a target by scrolling and using ONLY template matching.
 
-        Strategy:
-        1. Try template matching first (fast, accurate ~99%)
-        2. If template not found, fall back to OCR (slower, less reliable)
-
-        Uses fluid scrolls (broad, ~45% window height) for reliable movement.
+        NO OCR during battle phase - templates were saved during scan.
+        If template isn't found, opponent doesn't exist or was already defeated.
 
         Returns:
             y_position (int) if found, None if not found after full traversal.
@@ -175,19 +241,12 @@ class ArenaBattleRunner:
         # Start from the top
         self.scanner.scroll_to_top_fast()
 
-        # Check visible area at top using template matching first
+        # Check visible area at top (search region includes all 4 visible opponents)
+        # Template matching searches the entire region in one pass
         y_pos = self.find_target_by_template(target_power)
         if y_pos is not None:
             self.log(f"    Found via template at top: y={y_pos}")
             return y_pos
-
-        # Fallback to OCR if template matching failed
-        y_pos, visible = self.find_target_on_screen(target_power)
-        if y_pos is not None:
-            self.log(f"    Found via OCR at top: y={y_pos} (visible: {sorted(visible)})")
-            return y_pos
-        else:
-            self.log(f"    Not at top (visible: {sorted(visible)})")
 
         # Scroll down scanning at each position
         for i in range(ARENA_MAX_SCROLL_ATTEMPTS):
@@ -195,17 +254,11 @@ class ArenaBattleRunner:
                 return None
 
             self.scanner._fluid_scroll_down()
+            self.clicker.natural_delay(1.0)  # Wait for scroll to settle
 
-            # Try template matching first
             y_pos = self.find_target_by_template(target_power)
             if y_pos is not None:
                 self.log(f"    Found via template after scroll {i+1}: y={y_pos}")
-                return y_pos
-
-            # Fallback to OCR
-            y_pos, visible = self.find_target_on_screen(target_power)
-            if y_pos is not None:
-                self.log(f"    Found via OCR after scroll {i+1}: y={y_pos} (visible: {sorted(visible)})")
                 return y_pos
 
         return None

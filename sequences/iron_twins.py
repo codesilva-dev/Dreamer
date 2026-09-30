@@ -413,10 +413,26 @@ class IronTwinsSequence:
                 return 'no_key'
 
             # Check for replay (keys remain)
-            found, _, _ = self.template_matcher.find_template(
+            found_replay, _, _ = self.template_matcher.find_template(
                 TEMPLATE_IT_REPLAY, threshold=0.8
             )
-            if found:
+            if found_replay:
+                # Double-check that "no key" indicator is NOT present
+                # (prevents clicking replay when keys are actually exhausted)
+                found_no_key_check, _, _ = self.template_matcher.find_template(
+                    TEMPLATE_IT_NO_KEY, threshold=0.95
+                )
+                if found_no_key_check:
+                    elapsed = int(time.time() - start)
+                    self.log(f'  Battle complete ({elapsed}s) — no keys remaining (verified before replay)')
+                    # Click bastion to exit
+                    self.clicker.natural_delay(0.5)
+                    self.template_matcher.find_and_click(
+                        TEMPLATE_BASTION, threshold=0.8, wait_after=2.0
+                    )
+                    self.log('  Clicked Bastion — exiting Iron Twins')
+                    return 'no_key'
+
                 elapsed = int(time.time() - start)
                 self.log(f'  Battle complete ({elapsed}s)')
                 self.template_matcher.find_and_click(
