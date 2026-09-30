@@ -756,8 +756,8 @@ class TextRecognizer:
                 self._debug_log(f"    ⚠ Level window EMPTY for opp #{idx+1}")
 
             # Save raw OCR crops for debugging (include Y coords in filename)
-            arena_debug.save(team_power_window, f"opp{idx+1}_power_y{py_frame}")
-            arena_debug.save(level_window, f"opp{idx+1}_level_y{lv_y1c}-{lv_y2c}_x{lv_x1c}-{lv_x2c}")
+            arena_debug.save(team_power_window, f"{debug_prefix}opp{idx+1}_power_y{py_frame}")
+            arena_debug.save(level_window, f"{debug_prefix}opp{idx+1}_level_y{lv_y1c}-{lv_y2c}_x{lv_x1c}-{lv_x2c}")
 
             # OCR team power with voting
             power_value = None
@@ -775,7 +775,7 @@ class TextRecognizer:
                     raw_text = pytesseract.image_to_string(upscaled, config=whitelist_power).strip()
                     if raw_text:
                         parsed_value = self._parse_power_string(raw_text)
-                        if parsed_value and 10000 <= parsed_value <= 2000000:
+                        if parsed_value and 1000 <= parsed_value <= 2000000:
                             votes[parsed_value] = votes.get(parsed_value, 0) + 1
                 except:
                     pass
@@ -784,6 +784,8 @@ class TextRecognizer:
                 power_value = max(votes.items(), key=lambda x: x[1])[0]
                 power_text = f"{power_value/1000:.2f}K"
                 self._debug_log(f"  Band {idx+1} -> {power_value:,} ('{power_text}') votes={votes}")
+            else:
+                self._debug_log(f"  Band {idx+1} -> POWER OCR FAILED (0 valid reads out of {len(thresholds)} thresholds)")
 
             # OCR level with voting
             level_value = None

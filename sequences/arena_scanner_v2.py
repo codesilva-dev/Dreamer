@@ -882,6 +882,7 @@ class ArenaListScanner:
 
         # Phase 2: Broad scroll down, OCR after settle, repeat
         consecutive_empty = 0       # Counts scans that returned nothing (OCR failure)
+        consecutive_all_dupes = 0   # Counts scans where all opponents were duplicates
         max_scrolls = ARENA_MAX_SCROLL_ATTEMPTS + 2
         previous_snapshot = None
 
@@ -922,10 +923,17 @@ class ArenaListScanner:
                 new_count = _merge_new(visible, f'scroll{scroll_num + 1}')
 
                 if new_count > 0:
+                    consecutive_all_dupes = 0
                     self.log(f"      + {new_count} new after scroll {scroll_num + 1} "
                              f"({len(visible)} visible)")
                 else:
-                    self.log(f"      All duplicates after scroll {scroll_num + 1}")
+                    consecutive_all_dupes += 1
+                    self.log(f"      All duplicates (x{consecutive_all_dupes})")
+
+                    # If we see all duplicates twice in a row, we've reached the end
+                    if consecutive_all_dupes >= 2:
+                        self.log(f"  [V2] End of list reached")
+                        break
 
         # Add scan_index to preserve original scan order for debugging
         for idx, opp in enumerate(all_opponents):
