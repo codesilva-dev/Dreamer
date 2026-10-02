@@ -7,7 +7,7 @@
   "cb_difficulty": "nightmare",
   "cb_player_name": "Word Master",
   "daily_state": {
-    "last_reset": null,
-    "it_keys_exhausted": false
+    "last_reset": "2026-10-01T23:12:13.353800-04:00",
+    "it_keys_exhausted": true
   }
 }

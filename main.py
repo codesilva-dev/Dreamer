@@ -1553,7 +1553,7 @@ region = (x, y, width, height)
         seq.run()
 
     def _daily_classic_arena(self):
-        """Navigate to Classic Arena and run the battle sequence."""
+        """Navigate to Classic Arena and run the battle sequence until tokens exhausted."""
         # Skip if arena tokens already exhausted
         if getattr(self, 'arena_tokens_exhausted', False):
             self._daily_log('')
@@ -1591,16 +1591,13 @@ region = (x, y, width, height)
             stop_check=self.is_stop_requested,
             arena_status_callback=self.update_arena_status
         )
-        # Use skip_refresh_wait=True so arena returns early when refresh unavailable
-        result = v2.run(skip_refresh_wait=True)
+        # Run arena sequence in continuous mode - it will handle refreshes internally
+        # and stay in arena until all tokens are exhausted
+        v2.run()
 
-        # Check if tokens are truly exhausted
-        if v2.tokens_exhausted:
-            self._daily_log('  Arena tokens exhausted — will not retry')
-            self.arena_tokens_exhausted = True
-        elif not result:
-            # No refresh available but still have tokens - will retry in next cycle
-            self._daily_log('  Arena needs refresh — will retry in next cycle')
+        # Mark tokens exhausted so we don't retry arena
+        self._daily_log('  Arena sequence complete — tokens exhausted')
+        self.arena_tokens_exhausted = True
 
     # ─── Auto Clicker Methods ───────────────────────────────────────────
 
