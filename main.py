@@ -1218,7 +1218,7 @@ region = (x, y, width, height)
         'CB Main',
         'Iron Twins',
         'Classic Arena',
-        'Quests',
+        # 'Quests',  # Disabled - causes infinite loop when arena hits token wall
     ]
 
     def start_daily_loop(self):
