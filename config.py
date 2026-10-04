@@ -41,6 +41,7 @@ TEMPLATE_FREE_ICON = os.path.join(TEMPLATES_DIR, 'Free Icon.png')
 TEMPLATE_REG_PACK = os.path.join(TEMPLATES_DIR, 'regPack.png')
 TEMPLATE_JUNK_OFFER = os.path.join(TEMPLATES_DIR, 'junkoffer.png')
 TEMPLATE_CLOSE_OFFER = os.path.join(TEMPLATES_DIR, 'closeoffer.png')
+TEMPLATE_JUNK_CLOSE = os.path.join(TEMPLATES_DIR, 'junkclose.png')
 
 # Guardian templates
 TEMPLATE_GUARDIAN_RING = os.path.join(TEMPLATES_DIR, 'guardianRing.png')

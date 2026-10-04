@@ -8,7 +8,7 @@ and clicks it to dismiss. Loops until no more are found.
 import pyautogui
 from natural_click import NaturalClick
 
-from config import TEMPLATE_CLOSE_OFFER
+from config import TEMPLATE_CLOSE_OFFER, TEMPLATE_JUNK_CLOSE
 
 
 class DismissJunkOffersSequence:
@@ -55,6 +55,20 @@ class DismissJunkOffersSequence:
                 pyautogui.moveTo(abs_x, abs_y, duration=0.3)
                 self.clicker.natural_delay(0.2)
                 self.clicker.click()
+
+                # Check for "final offer" popup after closing
+                self.clicker.natural_delay(0.8)
+                found_final, final_location, _ = self.template_matcher.find_template(
+                    TEMPLATE_JUNK_CLOSE, threshold=0.8
+                )
+                if found_final:
+                    self.log(f'    Final offer popup detected — closing...')
+                    final_x = left + final_location[0]
+                    final_y = top + final_location[1]
+                    pyautogui.moveTo(final_x, final_y, duration=0.3)
+                    self.clicker.natural_delay(0.2)
+                    self.clicker.click()
+                    self.clicker.natural_delay(0.5)
 
             if dismissed:
                 self.log(f'  Dismissed {dismissed} junk offer(s)')
